@@ -61,15 +61,26 @@ namespace Varda
             // rejects anything past the end of the enum: remove the mod and every pin of that
             // type is dropped on load, silently, and the next save writes the map back without
             // them. Saving as a vanilla type means uninstalling costs you an icon, not a map.
-            DungeonPinType = cfg.Bind("Varda", "DungeonPinType", Minimap.PinType.Icon2,
+            // Icon3 and Icon4 are not guesses any more. Read in game on 2026-09-21, the five
+            // hand-placed slots are Icon0 fire, Icon1 house, Icon2 hammer, Icon3 plain marker,
+            // Icon4 portal.
+            //
+            // Icon3 for dungeons because it is the one with no meaning of its own. Icon2 was
+            // the first choice and is wrong: the hammer is what players already use to mark a
+            // mine, so a dungeon pin would both look like somebody's own mining pin and hide
+            // with it when that filter row is switched off.
+            DungeonPinType = cfg.Bind("Varda", "DungeonPinType", Minimap.PinType.Icon3,
                 "Which of the five hand-placed pin types a dungeon pin is saved as. This is "
                 + "what it turns into if you uninstall Varda, and which filter row hides it. "
-                + "Which sprite each number wears is asset data - turn on Verbose and the log "
-                + "names them all at the first map load.");
+                + "The five are Icon0 fire, Icon1 house, Icon2 hammer, Icon3 plain marker, "
+                + "Icon4 portal.");
 
+            // Icon4 is the portal icon, so a portal pin is already drawn correctly with no
+            // art of our own. That is why PortalIcon below is empty by default and
+            // DungeonIcon is not.
             PortalPinType = cfg.Bind("Varda", "PortalPinType", Minimap.PinType.Icon4,
-                "The same, for portal pins. Worth keeping different from the dungeon type so "
-                + "the two can be filtered apart.");
+                "The same, for portal pins. Icon4 is the game's own portal icon, which is "
+                + "already the right picture - there is no reason to change this one.");
 
             // A file name rather than a switch, so a rejected icon is swapped by dropping a
             // different PNG in and editing one line.
@@ -78,9 +89,13 @@ namespace Varda
                 + "back to the icon the game already uses for a crypt on the map, and failing "
                 + "that to the plain pin above. Nothing here is ever fatal.");
 
-            PortalIcon = cfg.Bind("Varda", "PortalIcon", "portal.png",
-                "PNG beside Varda.dll to draw portal pins with. Missing or empty leaves the "
-                + "plain pin above.");
+            // Empty on purpose, unlike DungeonIcon. Icon4 already wears the game's own portal
+            // icon, so drawing one would be replacing correct vanilla art with a copy of it.
+            PortalIcon = cfg.Bind("Varda", "PortalIcon", "",
+                "PNG beside Varda.dll to draw portal pins with. Empty by default because "
+                + "PortalPinType is already the game's portal icon, which is the right "
+                + "picture. Only worth setting if you want portals to stand out from the ones "
+                + "you pin by hand.");
 
             // 8m because a dungeon entrance is a few metres across and a portal is two, and
             // because re-entering the same crypt must not stack a second pin on the first.
