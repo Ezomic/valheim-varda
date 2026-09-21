@@ -79,7 +79,13 @@ namespace Varda
 
             _resolved = true;
 
-            _dungeon = FromFile(VardaConfig.DungeonIcon.Value) ?? Borrow(map);
+            // An explicit null check, not ??. Sprite derives from UnityEngine.Object, whose
+            // == is overloaded so that a destroyed object compares equal to null - and the
+            // null-propagating operators bypass that overload entirely, so ?? would keep a
+            // destroyed sprite and throw somewhere unrelated later.
+            _dungeon = FromFile(VardaConfig.DungeonIcon.Value);
+            if (_dungeon == null) _dungeon = Borrow(map);
+
             _portal = FromFile(VardaConfig.PortalIcon.Value);
 
             if (!VardaConfig.Verbose.Value) return;
