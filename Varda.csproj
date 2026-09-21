@@ -79,14 +79,15 @@
   </ItemGroup>
 
   <!--
-    Assets, if the mod has any. Uncomment and drop .obj / .col / .png into assets\; load them
-    relative to Path.GetDirectoryName(typeof(X).Assembly.Location). Rejected design variants
-    belong in assets\variants\ so they are not copied - that folder is not matched here.
+    The pin art. Drawn by tools\icons_build.py and read at runtime from beside the DLL, so
+    swapping an icon is dropping a PNG in rather than a rebuild.
 
-  <ItemGroup>
-    <VardaAsset Include="assets\*.obj;assets\*.col;assets\*.png" />
-  </ItemGroup>
+    The glob deliberately does not reach assets\variants\, which holds the picker icons
+    until that half is built. Shipping art that nothing loads is how a deploy folder grows.
   -->
+  <ItemGroup>
+    <VardaAsset Include="assets\*.png" />
+  </ItemGroup>
 
   <!--
     ContinueOnError, because the game holds the DLL open while it is running and a failed
@@ -97,7 +98,7 @@
   <Target Name="Deploy" AfterTargets="Build" Condition="Exists('$(ProfileDir)\BepInEx\plugins')">
     <MakeDir Directories="$(DeployDir)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployDir)" ContinueOnError="true" />
-    <!-- <Copy SourceFiles="@(VardaAsset)" DestinationFolder="$(DeployDir)" ContinueOnError="true" /> -->
+    <Copy SourceFiles="@(VardaAsset)" DestinationFolder="$(DeployDir)" ContinueOnError="true" />
   </Target>
 
 </Project>
