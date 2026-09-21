@@ -8,15 +8,27 @@ using HarmonyLib;
 namespace Varda
 {
     /// <summary>
-    /// Varda. One sentence saying what the mod does, then a paragraph saying why it is
-    /// worth having - the design argument, not the feature list. That paragraph is the thing
-    /// future-you reads first.
+    /// Varda marks the map with the places you have actually been: a dungeon pins itself when
+    /// you go in, and a portal you built pins itself with the tag you gave it.
     ///
-    /// Say here whether the mod is client-side, and say it in terms of where the work
-    /// happens rather than by habit. "Client-side" means every effect is computed by the
-    /// owning client off state it already has. The moment a decision reads another player's
-    /// progress, writes a shared ZDO, or registers a prefab, it is not client-side any more
-    /// and Requirement.Everyone below is load-bearing.
+    /// A varda is a cairn - a stack of stones somebody left at the side of a route so the next
+    /// person could find it again. That is the whole design rule, and it is a rule about what
+    /// the mod refuses to do. Every map mod eventually arrives at pinning ore, and ore pinning
+    /// is a detector: it tells you where something is that you have not found, and it turns
+    /// the part of the game that is exploration into the part that is reading a list. What
+    /// Varda pins is memory. You walked into that crypt at dusk and came out the far side of
+    /// the mountain; you built that portal and tagged it; neither pin tells you anything you
+    /// did not already know. It saves you writing it down, and nothing else.
+    ///
+    /// The pins are ordinary vanilla pins - you can rename them, tick them off, filter them
+    /// and delete them, and they are written into the map file with all the others. The mod
+    /// only paints its own picture on top. That is deliberate: a custom pin type would be
+    /// dropped on load by anyone without the mod, silently taking their pins with it.
+    ///
+    /// Client-side in the strict sense: every effect is computed by the owning client off
+    /// state it already has, and nothing is written anywhere but this machine. A player
+    /// without Varda sees exactly the game they would have seen, which is why
+    /// Requirement.HostOnly below is correct rather than merely permissive.
     ///
     /// There is deliberately no BepInProcess attribute. A dedicated server runs
     /// valheim_server.exe, and Core's gate only refuses on the server side of RPC_PeerInfo -
@@ -106,25 +118,30 @@ namespace Varda
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void RegisterWithCore()
         {
-            // Requirement.Everyone or Requirement.HostOnly, and the choice is not a matter of
-            // taste. Everyone for anything that registers a prefab or changes item data,
-            // whether it looks networked or not: a client that cannot resolve a prefab hash
-            // does not fail loudly, ZNetScene discards the ZDO as junk and the thing a player
-            // built is simply gone. HostOnly only when a client without the mod is genuinely
-            // unaffected.
-            Suite.Register(PluginGuid, PluginName, PluginVersion, Config, Requirement.Everyone);
+            // HostOnly, and it is the whole of what this mod asks of a server: nothing. It
+            // registers no prefab, writes no ZDO and changes no item - a pin lives in the map
+            // file on this machine - so a client without it is genuinely unaffected. Core
+            // honours that in both directions, which is the half that had to be fixed for
+            // Skaft: a server without Varda still lets in a client that has it.
+            Suite.Register(PluginGuid, PluginName, PluginVersion, Config, Requirement.HostOnly);
 
-            // Registering already absorbs the whole config file, so this is a formality now.
-            // It is still worth writing: naming an entry here is saying out loud that the
-            // host decides it. Keybinds are excluded by Core itself - a host taking away
-            // someone's keys for the evening is the kind of sync that gets a mod uninstalled.
-            Suite.Sync(VardaConfig.Enabled);
-
-            // If the mod reads a data file that decides what it does, hash it too. The gate
-            // catches two ends on different builds; it cannot catch two ends running the
-            // same build over different text unless it is told.
-            //
-            //     Suite.Data(File.ReadAllText(path));
+            // Every entry is Local, and that is not caution - Register absorbs the whole file
+            // and the host's values are imposed on anything left synced, which here would mean
+            // a server deciding what is on your personal map. Vaettir paid for that lesson
+            // with a grid angle that turned in singleplayer and refused to turn online:
+            // Core's SettingChanged watch puts an imposed value straight back the moment
+            // anything writes it.
+            Suite.Local(
+                VardaConfig.Enabled,
+                VardaConfig.Dungeons,
+                VardaConfig.Portals,
+                VardaConfig.NameDungeons,
+                VardaConfig.DungeonPinType,
+                VardaConfig.PortalPinType,
+                VardaConfig.DungeonIcon,
+                VardaConfig.PortalIcon,
+                VardaConfig.MergeRadius,
+                VardaConfig.Verbose);
         }
 
         private void OnDestroy()

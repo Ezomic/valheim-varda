@@ -6,60 +6,84 @@ namespace Varda
     /// The mod's Harmony patches. One class named in the plugin's PatchAll, so nothing goes
     /// live by being written.
     ///
-    /// Two rules that this file exists to hold in view.
-    ///
-    /// Ride vanilla systems rather than hand-rolling them. The suite's mods do their work by
-    /// reading the game's own tables - Smelter.m_conversion, the Hammer's piece table - and
-    /// by going through Player.PlacePiece so validity stays the game's problem. Keeping new
-    /// features on that seam is what makes them survive a game update; a custom subclass or
-    /// a patch on movement trades that away.
-    ///
-    /// Never guess an API. Read it, with
-    /// <c>ilspycmd -t &lt;Type&gt; -r "&lt;ManagedDir&gt;" "&lt;ManagedDir&gt;\assembly_valheim.dll"</c>,
-    /// or take the numbers off a devkit rip. A wrong method name is a Harmony patch that
-    /// throws once at load and then quietly never runs.
+    /// Four hooks and no more, which is most of the argument for the design: the game already
+    /// has a single method for going into a dungeon, a heartbeat on every loaded portal, and
+    /// two well-defined moments where a new map and a new character arrive. Nothing here
+    /// patches movement, the map's drawing, or the pin system itself.
     /// </summary>
     internal static class VardaPatches
     {
         /// <summary>
-        /// A patch that does nothing, kept so the wiring is proved rather than assumed. It
-        /// is the first thing to check when a mod loads and appears to do nothing at all: if
-        /// this line is absent from the log, the problem is the patch not applying, not the
-        /// logic behind it.
+        /// Captures where you are standing before the teleport, because afterwards you are
+        /// inside - and a dungeon interior sits above y 3000 directly over its own entrance,
+        /// so the position read a line later would put a pin three kilometres in the air.
+        /// </summary>
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Teleport), nameof(Teleport.Interact))]
+        private static void TeleportInteractPrefix(
+            Teleport __instance, Humanoid character, out Entrances.Entry __state)
+        {
+            __state = Entrances.Before(__instance, character);
+        }
+
+        /// <summary>
+        /// Acts only on a true return, which is the game saying the move actually happened -
+        /// a boss-blocked door and an unconnected one both return false and leave no pin.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Teleport), nameof(Teleport.Interact))]
+        private static void TeleportInteractPostfix(bool __result, Entrances.Entry __state)
+        {
+            Entrances.After(__state, __result);
+        }
+
+        /// <summary>
+        /// The portal's own twice-a-second heartbeat, which is private and invoked by name
+        /// from its Awake. Riding it is what lets a pin follow a tag that is typed after the
+        /// portal is built, and changed again later, without a second patch.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TeleportWorld), "UpdatePortal")]
+        private static void UpdatePortal(TeleportWorld __instance)
+        {
+            Portals.Tick(__instance);
+        }
+
+        /// <summary>
+        /// A new map means new sprites. The borrowed half cannot be cached across worlds: in
+        /// 1.0 the soft-ref bundles unload at logout and destroy what was in them, so a sprite
+        /// held from the last session is a destroyed object.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Minimap), "Awake")]
+        private static void MinimapAwake()
+        {
+            Icons.Reset();
+        }
+
+        /// <summary>
+        /// Puts Varda's icons back on the pins that came out of the map file.
+        ///
+        /// On spawn rather than on the map loading, for a plain reason: the remembered-pin
+        /// file is named after the world AND the character, and the character does not exist
+        /// until this runs. It is idempotent, so a respawn after death costs a re-read of a
+        /// small file.
         /// </summary>
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Player), nameof(Player.OnSpawned))]
         private static void OnSpawned(Player __instance)
         {
-            // Every player object in the scene runs this, not only yours. Anything meant for
-            // the person at the keyboard needs this line.
+            // Every player object in the scene runs this, not only yours.
             if (__instance != Player.m_localPlayer) return;
-            if (!VardaConfig.Enabled.Value || !VardaConfig.Verbose.Value) return;
+            if (!VardaConfig.Enabled.Value) return;
 
-            VardaPlugin.Log.LogInfo("Player spawned - patches are live.");
+            // Forces the sprite tables to resolve, which is also what writes them to the log
+            // under Verbose - and that log is the only way to find out which pin type wears
+            // which picture, because it is asset data.
+            Icons.Warm();
+
+            Remembered.Load();
+            Remembered.Apply();
         }
-
-        // Traps worth having in front of you while writing the real ones. All of these were
-        // paid for once already:
-        //
-        //   Character.OnDeath runs on the OWNING CLIENT ONLY. Its own !IsOwner() early
-        //   return is dead code, so the block above it looks like it runs everywhere and
-        //   does not. Anything per-player at a kill has to be done by the owner for
-        //   everybody, e.g. through Player.GetPlayersInRange.
-        //
-        //   SEMan.Internal_AddStatusEffect refreshes an already-running effect in place and
-        //   returns without reaching the public AddStatusEffect overload. Patching only the
-        //   public one misses every refresh.
-        //
-        //   Player.ConsumeItem removes the item whatever EatFood returned. Refuse food in
-        //   CanConsumeItem, which is the gate that path respects; refusing later destroys it.
-        //
-        //   The first ObjectDB.Awake of a session fires against a stub with no items. Gate
-        //   anything that reads the item database on m_items.Count > 0, and hook
-        //   ObjectDB.CopyOtherDB as well - that is the path a client takes on joining a
-        //   server.
-        //
-        //   Writing to a container or ZDO you do not own is silently discarded. Call
-        //   nview.ClaimOwnership() first, which is what vanilla's Take All does.
     }
 }
