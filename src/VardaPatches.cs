@@ -59,6 +59,7 @@ namespace Varda
         private static void MinimapAwake()
         {
             Icons.Reset();
+            IconDump.Reset();
         }
 
         /// <summary>
@@ -81,6 +82,7 @@ namespace Varda
             // under Verbose - and that log is the only way to find out which pin type wears
             // which picture, because it is asset data.
             Icons.Warm();
+            IconDump.Run();
 
             Remembered.Load();
             Remembered.Apply();

@@ -24,6 +24,7 @@ namespace Varda
         internal static ConfigEntry<string> DungeonIcon;
         internal static ConfigEntry<string> PortalIcon;
         internal static ConfigEntry<float> MergeRadius;
+        internal static ConfigEntry<bool> DumpIcons;
         internal static ConfigEntry<bool> Verbose;
 
         internal static void Bind(ConfigFile cfg)
@@ -103,6 +104,16 @@ namespace Varda
                 "Metres. A pin is not added when one already sits this close, whoever put it "
                 + "there - so re-entering a crypt does not stack pins, and a pin you placed by "
                 + "hand on the door is left alone rather than doubled.");
+
+            // A tool for drawing art, not a feature, which is why it is off and why it writes
+            // once and says so. The pin sprites are serialised on the Minimap prefab inside a
+            // bundle, so the running game is the only place they can be read from at all.
+            DumpIcons = cfg.Bind("Varda", "DumpIcons", false,
+                "Write the game's own map pin art to BepInEx/config/Varda/icons/ once, and log "
+                + "where each pin's picture sits on the sheet. For drawing an icon that "
+                + "matches; turn it off again afterwards. It writes whole sheets, not cropped "
+                + "pins, because cropping needs a vertical flip that is easy to get silently "
+                + "wrong.");
 
             // Not synced by intent - see the plugin. A diagnostic flag is personal, and a host
             // turning on someone else's logging is not a thing anybody asked for.

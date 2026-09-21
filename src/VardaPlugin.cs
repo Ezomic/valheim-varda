@@ -141,6 +141,7 @@ namespace Varda
                 VardaConfig.DungeonIcon,
                 VardaConfig.PortalIcon,
                 VardaConfig.MergeRadius,
+                VardaConfig.DumpIcons,
                 VardaConfig.Verbose);
         }
 
