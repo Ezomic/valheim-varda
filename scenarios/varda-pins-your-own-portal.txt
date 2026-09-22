@@ -47,7 +47,11 @@ pins 1 12
 # away against a radius of 12, and both pins inside it. The mod was right and the arithmetic
 # was mine. Measure from where the player ENDS UP, not from where the pieces are.
 move 24
-wait 3
+
+# Not a wait. TeleportTo refuses while the player is still moving AND for two seconds after
+# that, because the cooldown only ticks on frames where they are not teleporting. A fixed wait
+# here is a guess at both numbers at once.
+landed
 flatten
 place portal_wood
 wait 3

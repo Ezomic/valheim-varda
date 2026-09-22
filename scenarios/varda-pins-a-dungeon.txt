@@ -67,3 +67,10 @@ enter
 landed
 
 pins 1 60
+
+# Back out, so this file hands the world over the way it found it. Without it the scenario
+# ends with the player three kilometres up inside the crypt, and the NEXT scenario opens
+# there: that is how the portal one came to place both its portals at y 5042, on top of each
+# other, and count one pin where it wanted two.
+enter
+landed
