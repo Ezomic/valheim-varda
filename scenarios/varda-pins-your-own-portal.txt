@@ -1,0 +1,47 @@
+# Varda - a portal you built pins itself, and only once.
+#
+# Stand somewhere with no pins of your own within a dozen metres before running this. The
+# first line asserts an empty map nearby, and a base you have already marked by hand will
+# fail it for a reason that is nothing to do with the mod.
+#
+# The DUNGEON half is not covered here and cannot be. Entering one needs a real Teleport pair
+# inside a real location, and a scenario can neither place one nor press the key - so that
+# half stays a thing to walk into by hand. This covers the portal half, which is the one that
+# runs off the portal's own heartbeat and is therefore the one most likely to run twice.
+
+clear
+god
+ghost
+flatten
+
+# Nothing of ours here yet, at the radius every line below uses. Saved pins only, so the
+# player marker and a bed do not count.
+pins 0 12
+
+# `place` goes through Player.PlacePiece, which writes the creator id - and the creator is
+# exactly what Varda checks, because pinning every portal the world streams past you would put
+# other people's network on your map.
+place portal_wood
+wait 3
+
+pins 1 12
+
+# The interesting question is not whether the heartbeat pins but whether it stops. It runs
+# twice a second for as long as the portal is loaded, so without the merge check this would
+# be eight pins by now.
+wait 4
+pins 1 12
+
+# A second portal well clear of the first gets its own pin rather than being merged into it.
+# Fourteen metres forward is comfortably past the eight metre default merge radius, and the
+# teleport is given a moment because TeleportTo only sets a target - UpdateTeleport carries it
+# out over later frames.
+move 14
+wait 3
+flatten
+place portal_wood
+wait 3
+
+# One within arm's reach of where we are standing now, and both of them on the map.
+pins 1 12
+pins 2 40
