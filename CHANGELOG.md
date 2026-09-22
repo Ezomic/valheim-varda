@@ -40,8 +40,3 @@ enough apart getting a pin each.
 **`NameDungeons` is off.** The icon says what the thing is; a name under it repeats that in
 words on a map whose whole job is to be glanceable. Turn it on to tell two crypts apart
 without opening them.
-
-**No hand-placed icon picker in this version.** The groundwork is in - the remembered-pin file
-records an icon by name rather than one of two kinds, and an anchor and a fish are drawn and
-waiting in `assets/variants/` - but the map's own picker row is untouched, so the only pins
-Varda places are the two it places for you.
