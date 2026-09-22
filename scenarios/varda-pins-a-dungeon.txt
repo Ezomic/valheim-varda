@@ -1,0 +1,58 @@
+# Varda - a dungeon pins itself when you go in, and only when you go IN.
+#
+# This is the feature the mod is named for, and until now it was a thing to walk into by hand.
+# It is reachable after all: ZoneSystem.TestSpawnLocation puts a real crypt in front of you,
+# and Teleport.Interact IS entering one - the component's own OnTriggerEnter calls it when you
+# walk into the doorway and the use key calls it when you press E, so there is no third path
+# this could be imitating.
+#
+# Run it in SINGLEPLAYER. Placing a location is the host's to do; on a client the vanilla call
+# returns false and says nothing about why.
+#
+# Stand somewhere with no pins of your own within 60 metres. The first line asserts that.
+#
+# The crypt is placed with disableSave, so it is gone on the next load and no world is left
+# carrying a burial chamber somebody put there to check a pin. The PIN is saved, though, and
+# that is the point of it - clear it by hand afterwards if you care.
+
+clear
+god
+ghost
+
+pins 0 60
+
+# Crypt2 is a Black Forest burial chamber. Any dungeon location works here; what matters is
+# that it has a Teleport pair, which every one of them does.
+location Crypt2
+wait 3
+
+# Walking past the door does nothing. That is the whole design rule - the pin is a record of
+# where you have been, never a hint about where something is - so it is worth one line to
+# prove the mod is not simply pinning whatever is nearby.
+pins 0 60
+
+enter
+wait 2
+
+# Pinned, and named. The name comes from the entrance's own m_enterText, the localisation key
+# the game shows as a banner on the way in, so a modded dungeon would be labelled correctly
+# without Varda knowing anything about it.
+pins 1 60
+
+# The word below is a GUESS at what that key localises to, and it is the likeliest line in
+# this file to be wrong. It costs nothing to be wrong: `pinned` names every saved pin on the
+# map when it misses, so the first run says what to write here instead.
+pinned Crypt yes
+
+# Going back out and in again does not stack a second pin. The merge check is what stops it,
+# and it is the same one that leaves a pin you placed by hand alone.
+#
+# Three seconds between, not two: TeleportTo has a two second cooldown, so a second entry any
+# sooner is refused by the game rather than by the mod, and this would pass for a reason that
+# has nothing to do with what it is testing.
+enter
+wait 3
+enter
+wait 3
+
+pins 1 60
