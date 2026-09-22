@@ -33,10 +33,15 @@ wait 4
 pins 1 12
 
 # A second portal well clear of the first gets its own pin rather than being merged into it.
-# Fourteen metres forward is comfortably past the eight metre default merge radius, and the
-# teleport is given a moment because TeleportTo only sets a target - UpdateTeleport carries it
-# out over later frames.
-move 14
+# The teleport is given a moment because TeleportTo only sets a target - UpdateTeleport
+# carries it out over later frames.
+#
+# Twenty-four metres rather than the fourteen this first said, and the difference is the whole
+# lesson of the first run. `place` puts the piece IN FRONT of you, so after the second portal
+# the player is standing a couple of metres short of it - which left the first portal 12.0m
+# away against a radius of 12, and both pins inside it. The mod was right and the arithmetic
+# was mine. Measure from where the player ENDS UP, not from where the pieces are.
+move 24
 wait 3
 flatten
 place portal_wood
