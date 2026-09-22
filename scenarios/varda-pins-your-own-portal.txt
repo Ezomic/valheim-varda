@@ -14,6 +14,11 @@ god
 ghost
 flatten
 
+# A known map. Without this the scenario inherits whatever ran before it - the dungeon one
+# leaves a Burial Chambers pin behind, and this opened by asserting an empty map and finding
+# it. DELETES saved pins within 40m, hand-placed ones included.
+unpin 40
+
 # Nothing of ours here yet, at the radius every line below uses. Saved pins only, so the
 # player marker and a bed do not count.
 pins 0 12

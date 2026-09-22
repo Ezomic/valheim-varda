@@ -48,10 +48,14 @@ namespace Varda
                 "Pin portals you built, labelled with whatever you tagged them. Portals built "
                 + "by other players are never pinned; you would be reading their map.");
 
-            NameDungeons = cfg.Bind("Varda", "NameDungeons", true,
-                "Put the dungeon's own name on its pin - the same name the banner shows as you "
-                + "go in. Pin names only draw on the large map zoomed in, never on the minimap, "
-                + "so this costs nothing at a glance.");
+            // Off, and it was on until Robbin saw it in game. The icon already says what the
+            // thing is, and a label under it repeats that in words while taking up room on a
+            // map whose whole job is to be glanceable. Pin names draw on the large map only,
+            // never on the minimap, so this is about the map you read when you are planning.
+            NameDungeons = cfg.Bind("Varda", "NameDungeons", false,
+                "Put the dungeon's own name under its pin - the same name the banner shows as "
+                + "you go in. Off, because the icon already says what it is. On is worth it if "
+                + "you want to tell two crypts apart without opening them.");
 
             // Which vanilla type a pin is saved as decides two things: which filter row hides
             // it, and what it degrades to if Varda is ever removed. It is NOT what the pin

@@ -19,6 +19,9 @@ clear
 god
 ghost
 
+# A known map, the way `wipe` gives a known patch of ground. It DELETES saved pins within 60m,
+# including ones you placed by hand, which is the same bargain wipe makes with buildings.
+unpin 60
 pins 0 60
 
 # Crypt2 is a Black Forest burial chamber. Any dungeon location works here; what matters is
@@ -33,30 +36,34 @@ pins 0 60
 
 enter
 
-# Three seconds, not two. TeleportTo has a two second cooldown, and a wait of exactly two
-# followed by a couple of assertion frames lands on it - which is how the second `enter` below
-# came back "the entrance refused" on the first run, from 1.4m away, standing on the door.
-wait 3
+# Not a wait. TeleportTo raises a flag and UpdateTeleport carries the move out over later
+# frames once the destination has streamed in, and while that flag is up every further
+# TeleportTo returns false. Two seconds was not enough, three was not enough and six was,
+# which is a fact about how long a crypt took to load that afternoon rather than about the
+# game. `landed` reads the flag.
+landed
 
-# Pinned, and named. The name comes from the entrance's own m_enterText, the localisation key
-# the game shows as a banner on the way in, so a modded dungeon would be labelled correctly
-# without Varda knowing anything about it.
+# Pinned.
 pins 1 60
 
-# "Burial Chambers", read off the first run - `pinned` names every saved pin when it misses,
-# so the wrong guess this started as cost one run rather than a guessing game. It is the
-# LOCALISED banner text, so this line is the one that breaks if the game is not in English.
-pinned Burial yes
+# No label under the pin, because NameDungeons is off by default - the icon says what the
+# thing is and a name under it repeats that in words on a map whose job is to be glanceable.
+#
+# Asserting the ABSENCE is worth a line: the name still has to be computed to be suppressed,
+# and the way this breaks is the setting being ignored rather than the pin going missing. The
+# run before this one proved the other half - with it on, the pin read "Burial Chambers",
+# taken from the entrance's own m_enterText.
+pinned Burial no
 
 # Going back out and in again does not stack a second pin. The merge check is what stops it,
 # and it is the same one that leaves a pin you placed by hand alone.
 #
-# Three seconds between, not two: TeleportTo has a two second cooldown, so a second entry any
-# sooner is refused by the game rather than by the mod, and this would pass for a reason that
-# has nothing to do with what it is testing.
+# `landed` between, for the reason above: a second entry while the first is still landing is
+# refused by the game rather than by the mod, and this would fail for a reason that has
+# nothing to do with what it is testing.
 enter
-wait 3
+landed
 enter
-wait 3
+landed
 
 pins 1 60
