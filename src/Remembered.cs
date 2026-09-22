@@ -8,12 +8,6 @@ using UnityEngine;
 
 namespace Varda
 {
-    internal enum Kind
-    {
-        Dungeon,
-        Portal,
-    }
-
     /// <summary>
     /// The list of pins Varda put there, kept in a small text file beside the config.
     ///
@@ -36,10 +30,15 @@ namespace Varda
     {
         private struct Entry
         {
-            internal Kind Kind;
+            /// <summary>Which picture this pin wears, as an icon name rather than a category.</summary>
+            internal string Icon;
             internal float X;
             internal float Z;
         }
+
+        /// <summary>The two the mod places itself. Anything else is an icon the player picked.</summary>
+        internal const string Dungeon = "dungeon";
+        internal const string Portal = "portal";
 
         private static readonly List<Entry> Entries = new List<Entry>();
         private static string _path;
@@ -67,17 +66,22 @@ namespace Varda
                     string[] parts = line.Split(';');
                     if (parts.Length != 3) continue;
 
-                    Kind kind;
+                    // Lowercased on the way in, which also reads the files written before the
+                    // kind was an open set: those hold Dungeon and Portal with a capital, from
+                    // an enum's ToString, and there is no reason to make anybody's map forget
+                    // its icons over a letter.
+                    string icon = parts[0].Trim().ToLowerInvariant();
+                    if (icon.Length == 0) continue;
+
                     float x, z;
 
                     // InvariantCulture throughout. This machine is on a Dutch locale, where a
                     // comma is the decimal separator, and a file written on one locale and read
                     // on another would parse every coordinate wrong rather than failing.
-                    if (!TryKind(parts[0], out kind)) continue;
                     if (!float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out x)) continue;
                     if (!float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out z)) continue;
 
-                    Entries.Add(new Entry { Kind = kind, X = x, Z = z });
+                    Entries.Add(new Entry { Icon = icon, X = x, Z = z });
                 }
             }
             catch (Exception e)
@@ -94,9 +98,11 @@ namespace Varda
         }
 
         /// <summary>Adds a position to the list and writes the file.</summary>
-        internal static void Note(Vector3 pos, Kind kind)
+        internal static void Note(Vector3 pos, string icon)
         {
-            Entries.Add(new Entry { Kind = kind, X = pos.x, Z = pos.z });
+            if (string.IsNullOrEmpty(icon)) return;
+
+            Entries.Add(new Entry { Icon = icon, X = pos.x, Z = pos.z });
             Save();
         }
 
@@ -124,7 +130,7 @@ namespace Varda
                     continue;
                 }
 
-                Sprite icon = entry.Kind == Kind.Dungeon ? Icons.Dungeon() : Icons.Portal();
+                Sprite icon = SpriteFor(entry.Icon);
                 if (icon == null) continue;
 
                 Pins.Dress(pin, icon);
@@ -152,6 +158,21 @@ namespace Varda
             return false;
         }
 
+        /// <summary>
+        /// The picture for a remembered icon name.
+        ///
+        /// The mod's own two go through Icons so they keep their fallbacks - a dungeon with no
+        /// PNG drawn yet still borrows, and a portal with none keeps the game's portal icon.
+        /// Everything else is a file the player chose, and has no substitute worth inventing.
+        /// </summary>
+        private static Sprite SpriteFor(string icon)
+        {
+            if (icon == Dungeon) return Icons.Dungeon();
+            if (icon == Portal) return Icons.Portal();
+
+            return Icons.Named(icon);
+        }
+
         private static void Save()
         {
             if (_path == null) return;
@@ -161,7 +182,7 @@ namespace Varda
                 var text = new StringBuilder();
                 foreach (Entry entry in Entries)
                 {
-                    text.Append(entry.Kind).Append(';')
+                    text.Append(entry.Icon).Append(';')
                         .Append(entry.X.ToString("R", CultureInfo.InvariantCulture)).Append(';')
                         .Append(entry.Z.ToString("R", CultureInfo.InvariantCulture)).Append('\n');
                 }
@@ -182,15 +203,6 @@ namespace Varda
                     "Could not write " + _path + " (" + e.Message + "). The pins are on the "
                     + "map either way; what is at risk is their icons after the next load.");
             }
-        }
-
-        private static bool TryKind(string text, out Kind kind)
-        {
-            if (text == Kind.Dungeon.ToString()) { kind = Kind.Dungeon; return true; }
-            if (text == Kind.Portal.ToString()) { kind = Kind.Portal; return true; }
-
-            kind = Kind.Dungeon;
-            return false;
         }
 
         /// <summary>

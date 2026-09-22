@@ -51,7 +51,7 @@ namespace Varda
 
                 if (pin == null) return;
 
-                Remembered.Note(pos, Kind.Portal);
+                Remembered.Note(pos, Remembered.Portal);
 
                 if (VardaConfig.Verbose.Value)
                 {

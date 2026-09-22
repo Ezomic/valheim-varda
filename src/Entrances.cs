@@ -82,7 +82,7 @@ namespace Varda
 
             if (pin == null) return;
 
-            Remembered.Note(entry.Pos, Kind.Dungeon);
+            Remembered.Note(entry.Pos, Remembered.Dungeon);
 
             if (VardaConfig.Verbose.Value)
             {

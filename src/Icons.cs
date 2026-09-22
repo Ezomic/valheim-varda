@@ -70,6 +70,24 @@ namespace Varda
             return _portal;
         }
 
+        /// <summary>
+        /// Any icon by name, loaded from &lt;name&gt;.png beside the DLL and cached.
+        ///
+        /// The two above are the mod's own and have a fallback each. This one has none on
+        /// purpose: it serves icons the PLAYER chose from the picker, and there is no sensible
+        /// substitute for the one they asked for. A null here means the pin keeps whatever
+        /// picture its vanilla type wears, which is exactly what it would look like with the
+        /// mod uninstalled - so the failure mode is the uninstalled one rather than a new one.
+        /// </summary>
+        internal static Sprite Named(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+
+            return FromFile(name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                ? name
+                : name + ".png");
+        }
+
         private static void Resolve()
         {
             if (_resolved) return;
