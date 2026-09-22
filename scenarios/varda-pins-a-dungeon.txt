@@ -32,17 +32,21 @@ wait 3
 pins 0 60
 
 enter
-wait 2
+
+# Three seconds, not two. TeleportTo has a two second cooldown, and a wait of exactly two
+# followed by a couple of assertion frames lands on it - which is how the second `enter` below
+# came back "the entrance refused" on the first run, from 1.4m away, standing on the door.
+wait 3
 
 # Pinned, and named. The name comes from the entrance's own m_enterText, the localisation key
 # the game shows as a banner on the way in, so a modded dungeon would be labelled correctly
 # without Varda knowing anything about it.
 pins 1 60
 
-# The word below is a GUESS at what that key localises to, and it is the likeliest line in
-# this file to be wrong. It costs nothing to be wrong: `pinned` names every saved pin on the
-# map when it misses, so the first run says what to write here instead.
-pinned Crypt yes
+# "Burial Chambers", read off the first run - `pinned` names every saved pin when it misses,
+# so the wrong guess this started as cost one run rather than a guessing game. It is the
+# LOCALISED banner text, so this line is the one that breaks if the game is not in English.
+pinned Burial yes
 
 # Going back out and in again does not stack a second pin. The merge check is what stops it,
 # and it is the same one that leaves a pin you placed by hand alone.
