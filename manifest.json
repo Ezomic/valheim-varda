@@ -2,7 +2,7 @@
     "name":  "Varda",
     "author":  "Robbin Thijssen",
     "version_number":  "0.1.0",
-    "description":  "Dungeon entrances and portals pin themselves once you have used them, plus more icons to place by hand.",
+    "description":  "Dungeon entrances and portals pin themselves once you have used them.",
     "dependencies":  [
                          "denikson-BepInExPack_Valheim-5.4.2350"
                      ],

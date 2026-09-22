@@ -31,5 +31,17 @@ Settled by running it, and none of it was readable any other way:
   temple, trader, Hildir's camp, Bog Witch camp, ancient upgrade station — and none is a
   dungeon. The donor list inherited from Delve matches nothing.
 
-Still unverified: everything about the pins in play. No dungeon has been entered and no portal
-built with the mod loaded, so the two features it exists for have been read and not watched.
+Both halves are proven in game, by Devkit scenarios that replay them: `varda-pins-a-dungeon`
+and `varda-pins-your-own-portal`. Between them they cover the pin appearing on the way in and
+not for walking past, the label being suppressed, a second entry not stacking a pin, a portal
+pinning itself, the merge check holding across eight of its heartbeats, and two portals far
+enough apart getting a pin each.
+
+**`NameDungeons` is off.** The icon says what the thing is; a name under it repeats that in
+words on a map whose whole job is to be glanceable. Turn it on to tell two crypts apart
+without opening them.
+
+**No hand-placed icon picker in this version.** The groundwork is in - the remembered-pin file
+records an icon by name rather than one of two kinds, and an anchor and a fish are drawn and
+waiting in `assets/variants/` - but the map's own picker row is untouched, so the only pins
+Varda places are the two it places for you.

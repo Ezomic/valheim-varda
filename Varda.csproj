@@ -18,7 +18,7 @@
     <Authors>Robbin Thijssen</Authors>
     <Company>Thijssen Software</Company>
     <Product>Varda</Product>
-    <Description>Dungeon entrances and portals pin themselves once you have used them, plus more icons to place by hand.</Description>
+    <Description>Dungeon entrances and portals pin themselves once you have used them.</Description>
     <Copyright>Copyright (c) 2026 Robbin Thijssen</Copyright>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
