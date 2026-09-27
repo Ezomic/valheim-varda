@@ -27,7 +27,13 @@ namespace Varda
     ///
     /// <b>It goes with the portal.</b> Both moments that take a destroyed portal's pin off forget
     /// its hidden record as well (Portals.ForgetHidden), so a portal built later on the same spot
-    /// starts pinned.
+    /// starts pinned. Only while RemoveDestroyedPortals is on, since both moments answer to it;
+    /// with it off the record outlives the portal, as the cfg and the README say.
+    ///
+    /// <b>The key set to None does not show anything again.</b> It takes away the key and the
+    /// hover line, and Tick still reads the records, so a portal hidden before stays hidden with
+    /// nothing on it to say why. That is written in the cfg and the README rather than changed
+    /// here, because whether None should also bring those pins back is Robbin's call.
     /// </summary>
     internal static class Hiding
     {

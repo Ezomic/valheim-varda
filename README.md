@@ -54,10 +54,14 @@ in the settings turns this off, if you would rather keep a mark where a portal u
 off and stays off. Press H again while looking at it and the pin comes back, with its tag. The
 portal's hover text says which the key will do, under the line for setting its tag. It is
 yours alone, remembered per character, per world and per portal. Nobody else's map changes, the
-portal itself is untouched, and a pin you placed by hand is never touched. If the portal is
-destroyed, Varda forgets you hid it, so a new portal built in its place gets a pin. The key is
-`HidePortalKey` in the settings, and None switches it off. It is not Shift+E because another of
-my mods already uses that on portals.
+portal itself is untouched, and a pin you placed by hand is never touched. While
+`RemoveDestroyedPortals` is on, a destroyed portal is forgotten along with the fact that you hid
+it, at once if you are there and otherwise the next time you stand near that spot, so a new
+portal built in its place gets a pin. With it off, the choice stays with the spot, and a new
+portal built exactly there starts hidden. The key is `HidePortalKey` in the settings. Setting it
+to None takes away the key and its line on the portal, but a portal you had already hidden stays
+off your map until you bind a key again and press it on that portal. It is not Shift+E because
+another of my mods already uses that on portals.
 
 ## These are ordinary pins
 

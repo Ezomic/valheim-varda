@@ -90,6 +90,11 @@ namespace Varda
             //
             // A KeyCode, which Core's config sync exempts from host control whatever the list in
             // the plugin says; it is in that list anyway, so the list stays the whole truth.
+            //
+            // None takes away the key and the hover line and nothing else. Tick reads the hidden
+            // records whatever the key is, so a portal already hidden stays hidden, and with the
+            // line gone there is nothing on it to say why. The description says so because a
+            // player who sets None to turn the feature off would otherwise expect those pins back.
             HidePortalKey = cfg.Bind("Varda", "HidePortalKey", KeyCode.H,
                 "Look at a portal you built and press this to take its pin off your map, and press "
                 + "it again to put the pin back. The portal's hover text names the key and says "
@@ -97,8 +102,9 @@ namespace Varda
                 + "itself is untouched, and it is remembered per character, per world and per "
                 + "portal. A pin you placed by hand is never touched. H because neither the game "
                 + "nor any of this author's other mods binds it; Shift+E would have been the "
-                + "natural gesture, but Skra's portal settings already use it. None switches this "
-                + "off. Does nothing while Portals is off.");
+                + "natural gesture, but Skra's portal settings already use it. None takes away the "
+                + "key and its hover line, but a portal you already hid stays hidden until you bind "
+                + "a key again and press it on that portal. Does nothing while Portals is off.");
 
             // Off, and it was on until Robbin saw it in game. The icon already says what the
             // thing is, and a label under it repeats that in words while taking up room on a
