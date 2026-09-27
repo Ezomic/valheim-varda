@@ -41,13 +41,12 @@ your map is reading their notes rather than writing your own.
 
 **When the portal goes, its pin goes with it.** Take it down with the hammer, lose it to a
 troll, or have somebody else break it, and the pin comes off your map. Walking away from a
-portal is not the same thing and never counts. If it went at a time your game had never
-loaded it, say while you were offline or before you had been near it that session, nothing
-told your game, so the pin stays until you are next standing near that spot. Once the area
-around you has finished loading and there is still no portal of yours there, the pin comes
-off then. Only the pin Varda put on that portal is taken: a pin you
-placed beside it by hand stays, and so does any dungeon pin. `RemoveDestroyedPortals` in the
-settings turns this off, if you would rather keep a mark where a portal used to be.
+portal is not the same thing and never counts. If it went while you were not there, say while
+you were offline or on the other side of the world, the pin can stay until you are next
+standing near that spot. Once the area around you has finished loading and there is still no
+portal of yours there, the pin comes off then. Only the pin Varda put on that portal is taken:
+a pin you placed beside it by hand stays, and so does any dungeon pin. `RemoveDestroyedPortals`
+in the settings turns this off, if you would rather keep a mark where a portal used to be.
 
 ## These are ordinary pins
 
@@ -58,12 +57,12 @@ along the top of the map, and delete it. It is written into your map save with a
 others, and it is the same kind of pin you would have placed by hand. The mod only paints
 its own picture on top of it.
 
-That is deliberate, and the alternative is worse than it sounds. Valheim saves a pin as a
-name, a position and its *type as a plain number*, and it reads that number back through a
-function that rejects anything it does not recognise. A mod that invented its own pin type
-would produce pins that vanish from the map the first time the game loads without the mod,
-silently, and then the next save writes the map back without them. Uninstalling Varda costs
-you an icon. It does not cost you the pin.
+That is deliberate. Valheim saves a pin as a name, a position and its *type as a plain
+number*, and a number it does not recognise comes back as the plain marker. A mod that
+invented its own pin type would leave all of its pins looking the same the first time the game
+loads without it, crypts and portals alike, and filed under the plain marker's filter button.
+Varda saves a portal as the game's own portal pin, so uninstalling it costs you the pictures it
+paints and nothing else.
 
 The one thing that is stored outside the map is which pins are Varda's, so their icons can
 be put back after a reload, and so a destroyed portal takes only its own pin with it. It is a

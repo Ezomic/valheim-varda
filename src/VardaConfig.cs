@@ -58,13 +58,16 @@ namespace Varda
             // that went while you were far away never told this machine anything, so its pin can
             // only come off when you are back, and "back" has to include the area having finished
             // loading, or a portal that simply has not arrived yet would lose its pin.
+            //
+            // Does nothing with Portals off. What puts back a pin that was taken off by mistake
+            // is the portal pinning itself again, and that is the half Portals switches off.
             RemoveDestroyedPortals = cfg.Bind("Varda", "RemoveDestroyedPortals", true,
                 "Take a portal's pin off your map when that portal is destroyed, by your hammer, "
                 + "by damage or by anybody else. If it went while you were far away, the pin comes "
                 + "off the next time you stand near where it was, once the area has finished "
                 + "loading. Walking out of sight of a portal never counts. Only pins Varda put on "
                 + "portals you built: a pin you placed by hand is never touched, and neither is a "
-                + "dungeon pin.");
+                + "dungeon pin. Does nothing while Portals is off.");
 
             // Off, and it was on until Robbin saw it in game. The icon already says what the
             // thing is, and a label under it repeats that in words while taking up room on a
@@ -80,10 +83,12 @@ namespace Varda
             // looks like while the mod is running - the icon below wins.
             //
             // A custom PinType was the obvious alternative and it is a trap. Pins are written
-            // to the map file as a bare int and read back through Minimap.AddPin, which
-            // rejects anything past the end of the enum: remove the mod and every pin of that
-            // type is dropped on load, silently, and the next save writes the map back without
-            // them. Saving as a vanilla type means uninstalling costs you an icon, not a map.
+            // to the map file as a bare int and read back through Minimap.AddPin, which in 1.0
+            // takes nothing past the end of the enum: it logs "Trying to add invalid pin type"
+            // and makes the pin Icon3 instead. So a custom type needs a patch on AddPin just to
+            // exist, and without the mod every such pin loads as the plain marker, all of them
+            // alike and filed under Icon3's row. Saving as a vanilla type means uninstalling
+            // costs you a picture and nothing else.
             // Icon3 and Icon4 are not guesses any more. Read in game on 2026-09-21, the five
             // hand-placed slots are Icon0 fire, Icon1 house, Icon2 hammer, Icon3 plain marker,
             // Icon4 portal.

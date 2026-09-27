@@ -142,15 +142,10 @@ namespace Varda
             Minimap map = Minimap.instance;
             if (map == null) return null;
 
+            // No null check on the result. In 1.0 AddPin never refuses: a type it does not know
+            // is logged as "Trying to add invalid pin type" and saved as Icon3, so a bad
+            // DungeonPinType or PortalPinType shows up as that warning and a plain marker.
             Minimap.PinData pin = map.AddPin(pos, type, name ?? "", true, false, 0L);
-            if (pin == null)
-            {
-                VardaPlugin.Log.LogWarning(
-                    "The map refused a " + type + " pin. That happens when the pin type is "
-                    + "outside the range the game knows, so check DungeonPinType and "
-                    + "PortalPinType in the config.");
-                return null;
-            }
 
             Dress(pin, icon);
             return pin;

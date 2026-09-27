@@ -6,10 +6,10 @@ namespace Varda
     /// The mod's Harmony patches. One class named in the plugin's PatchAll, so nothing goes
     /// live by being written.
     ///
-    /// Four hooks and no more, which is most of the argument for the design: the game already
-    /// has a single method for going into a dungeon, a heartbeat on every loaded portal, and
-    /// two well-defined moments where a new map and a new character arrive. Nothing here
-    /// patches movement, the map's drawing, or the pin system itself.
+    /// Six hooks and no more, which is most of the argument for the design: the game already
+    /// has a single method for going into a dungeon, a heartbeat on every loaded portal, two
+    /// well-defined moments where a new map and a new character arrive, and one place the map
+    /// is saved. Nothing here patches movement, the map's drawing, or the pin system itself.
     ///
     /// A destroyed portal needs no patch at all. ZDOMan announces every destroyed ZDO through
     /// its public m_onZDODestroyed callback, which is how ZNetScene itself hears of one, and
@@ -95,6 +95,30 @@ namespace Varda
             // it, and Portals.Sweep treats this call as the sign that the list in memory
             // belongs to the world now loaded.
             Portals.Watch();
+        }
+
+        /// <summary>
+        /// The first half of the map reaching disk: the pins have just been copied into the
+        /// profile. Game.SavePlayerProfile is the only caller, and it skips this whenever it is
+        /// not going to save the character at all, which is why the copy is watched here rather
+        /// than assumed from SavePlayerProfile having been called. See Remembered.Forget.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Minimap), nameof(Minimap.SaveMapData))]
+        private static void SaveMapData()
+        {
+            Remembered.MapTaken();
+        }
+
+        /// <summary>
+        /// The second half: that profile has been written. A postfix does not run when the
+        /// original throws, so a save that failed loudly lets nothing go.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Game), nameof(Game.SavePlayerProfile))]
+        private static void SavePlayerProfile()
+        {
+            Remembered.MapWritten();
         }
     }
 }

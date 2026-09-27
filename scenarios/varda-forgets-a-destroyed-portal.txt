@@ -8,7 +8,8 @@
 #
 # Needs Verbose = true in ezomic.valheim.varda.cfg, as own-profile has it. The line saying
 # Varda has forgotten the portal is a Verbose line, and `logged` is the only step that can see
-# the sidecar was written.
+# the entry was dropped. The file itself is only rewritten at the next save of the character,
+# so that a crash cannot leave the map with a pin the file has already let go of.
 #
 # TWO THINGS THIS FILE CANNOT SHOW. Both are worth doing by hand before a release.
 #
@@ -31,11 +32,12 @@
 #   2. In Devkit's config pane, switch Varda's RemoveDestroyedPortals off.
 #   3. Remove the portal with the hammer. Expected: the pin stays, since nothing is watching.
 #   4. Switch RemoveDestroyedPortals back on and stand still.
-#   Expected: after about ten seconds the pin goes, and the log says "the portal was gone when
-#   you came back".
-# What that still does not cover is a client on a server arriving at a spot whose ZDOs are
-# still streaming in, which is the case the ten second wait exists for. Nothing here can make a
-# server send slowly on purpose.
+#   Expected: after about ten seconds the pin goes, and the log says "the portal was not there
+#   once the area around it had settled".
+# What that still does not cover is a client on a server, which is where the ten second wait
+# matters: arriving at a spot whose ZDOs are still streaming in, or hearing of a destroy before
+# the area around it has settled, which a client hands to the same wait. Nothing here can make a
+# server send slowly on purpose, or run a second client.
 
 clear
 god
@@ -48,15 +50,41 @@ count portal_wood 0 40
 unpin 40
 pins 0 12
 
-# ---------------------------------------------------------------- broken while you watch
+# ---------------------------------------------------------------- walking away is not a destroy
 
+# First, before anything has been broken, so the `logged ... no` lines below can only be about
+# this. ZNetScene.RemoveObjects tears a portal's object down when you leave the area and builds
+# it again when you come back. A mod reading the object would take the pin off for that, and
+# this one reads the ZDO. 200m is well past the active area, and past sixty `move` is a distant
+# teleport, which unloads where you came from.
 place portal_wood
 wait 3
 pins 1 12
 
-# `break` ends in WearNTear.Remove, the call the hammer's remove makes, and from there it is the
-# game's own path: ZNetScene.Destroy hands the ZDO to ZDOMan.DestroyZDO, which only queues it.
-# The destroy is announced on ZDOMan's next update, and that is when Varda hears of it.
+move 200
+landed
+move -200
+landed
+
+# Twelve seconds back at the spot: the ten the absence check waits for the area to settle, and
+# a margin over its once-a-second pace.
+wait 12
+pins 1 12
+
+# The count cannot fail on its own. Had the pin been taken off, the portal's heartbeat would have
+# put a new one down within half a second, and this would still read one. The log is what can
+# fail: nothing may have been taken off or forgotten, whether by the destroy path firing for an
+# unload or by the absence check misjudging a portal that stands.
+logged was not there once the area around it had settled no
+logged Took your portal pin no
+logged Forgot your portal no
+
+# ---------------------------------------------------------------- broken while you watch
+
+# The same portal. `break` ends in WearNTear.Remove, the call the hammer's remove makes, and from
+# there it is the game's own path: ZNetScene.Destroy hands the ZDO to ZDOMan.DestroyZDO, which
+# only queues it. The destroy is announced on ZDOMan's next update, and that is when Varda hears
+# of it.
 break portal_wood
 wait 2
 
@@ -70,35 +98,43 @@ pins 0 12
 
 # One line carrying both halves, so neither can be answered by some other line in the log: the
 # pin went because of the destroy, and the sidecar entry went with it. That sentence is only
-# written once the entry has been dropped, and the file is rewritten in the same call; a failed
-# write says so in a warning of its own.
+# written once the entry has been dropped.
 logged the portal was destroyed while your game had it loaded. Varda no longer remembers it yes
 
-# ---------------------------------------------------------------- walking away is not that
+# ---------------------------------------------------------------- two portals, one pin
 
-# ZNetScene.RemoveObjects tears a portal's object down when you leave the area and builds it
-# again when you come back. A mod reading the object would take the pin off for that, and this
-# one reads the ZDO. 200m is well past the active area, and past sixty `move` is a distant
-# teleport, which unloads where you came from.
+# Five metres apart and both untagged, so inside MergeRadius and sharing the one pin that
+# whichever loaded first put down. This is the case where the callback has to look past the
+# portal it is being told about: that ZDO is still in the sector lists while its destruction is
+# announced, and the pin may only stay because of the other portal.
+place portal_wood
+place portal_wood 3 5
+wait 3
+pins 1 12
+
+# The nearest, which is the first, three metres ahead. The other still stands, so the pin stays.
+break portal_wood
+wait 2
+count portal_wood 1 12
+pins 1 12
+logged another of yours stands within yes
+
+# And the second. Nothing of yours is left within MergeRadius, so the pin goes.
+break portal_wood
+wait 2
+count portal_wood 0 12
+pins 0 12
+
+# ---------------------------------------------------------------- two portals, a pin each
+
+# Twenty-four metres, three times MergeRadius, so each has its own pin, and breaking one must
+# leave the other's alone: the callback only asks about spots within MergeRadius of the portal
+# that went. `place` puts the piece in front of you, so the distances are measured from where the
+# player ends up, for the reason varda-pins-your-own-portal gives.
 place portal_wood
 wait 3
 pins 1 12
 
-move 200
-landed
-move -200
-landed
-
-# Twelve seconds back at the spot: the ten the absence check waits for the area to settle, and
-# a margin over its once-a-second pace. So this also shows it looking at a standing portal and
-# leaving the pin alone.
-wait 12
-pins 1 12
-
-# ---------------------------------------------------------------- two portals, one broken
-
-# Twenty-four metres, for the reason varda-pins-your-own-portal gives: `place` puts the piece in
-# front of you, so the distances are measured from where the player ends up.
 move 24
 landed
 flatten

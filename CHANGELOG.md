@@ -7,11 +7,11 @@ the map's own art out of it.
 
 Dungeons pin themselves when you go in, portals you built pin themselves with their tag. Both
 are ordinary vanilla pins wearing a supplied picture, so uninstalling costs you an icon rather
-than the pin. A custom pin type would be dropped on load by anyone without the mod and written
-out of the map on the next save.
+than the pin. A custom pin type would come back as the plain marker for anyone without the mod,
+every one of them alike.
 
-A destroyed portal takes its pin with it: at once if your game had it loaded, otherwise the next
-time you are there. Not run in game yet.
+A destroyed portal takes its pin with it: at once if you are there, otherwise by the next time
+you are. Not run in game yet.
 
 The dungeon pin has its own art, drawn by `tools/icons_build.py` and loaded from beside the
 DLL. It is a stone arch with steps going down into the dark, from a reference Robbin supplied
