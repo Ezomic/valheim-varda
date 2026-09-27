@@ -18,7 +18,8 @@ namespace Varda
     /// different from the map you left. Remembering which positions are ours is what lets the
     /// icons be put back, and it is the same list the hand-placed icon set will need. It is also
     /// what tells a portal's pin from the one on the portal beside it, and what lets a destroyed
-    /// portal take its own pin with it and nobody else's.
+    /// portal take its own pin with it and nobody else's. And it is where a portal you hid from
+    /// your map is written down, since that choice has no pin to carry it.
     ///
     /// <b>Why not a custom PinType instead, which would carry the icon by itself.</b> Because
     /// Minimap.AddPin will not keep a type past the end of the enum (it logs a warning and makes
@@ -39,9 +40,22 @@ namespace Varda
             internal float Z;
         }
 
-        /// <summary>The two the mod places itself. Anything else is an icon the player picked.</summary>
+        /// <summary>The two the mod places itself. Anything else is an icon the player picked, or HiddenPortal.</summary>
         internal const string Dungeon = "dungeon";
         internal const string Portal = "portal";
+
+        /// <summary>
+        /// Not a pin at all: a portal of yours that you hid from your map with HidePortalKey, on
+        /// the portal's own spot. See Hiding.
+        ///
+        /// A kind of its own rather than a mark on the portal's pin record, because the whole
+        /// point of it is that there is no pin, and every question asked about Portal entries
+        /// is a question about a pin: Has(pos, Portal) is how Tick tells Varda's pins from
+        /// yours, Apply drops a Portal entry with no pin under it, and both moments of a
+        /// destroyed portal take a pin off by it. Nothing that asks for Portal can see this, and
+        /// Apply passes over it rather than looking for an icon file of that name.
+        /// </summary>
+        internal const string HiddenPortal = "hidden-portal";
 
         private static readonly List<Entry> Entries = new List<Entry>();
         private static string _path;
@@ -150,6 +164,10 @@ namespace Varda
         /// search dressed whichever pin the map's list held first, which beside a portal could
         /// be one the player placed by hand, and it kept an entry alive on the strength of a pin
         /// that was not Varda's at all.
+        ///
+        /// A hidden portal is passed over. It has no pin by design, so the rule that cleans up
+        /// after a pin deleted by hand would forget every portal you hid on the next load, and
+        /// each would pin itself again. Its entry goes when the portal does, or when you show it.
         /// </summary>
         internal static void Apply()
         {
@@ -160,6 +178,8 @@ namespace Varda
             for (int i = Entries.Count - 1; i >= 0; i--)
             {
                 Entry entry = Entries[i];
+                if (entry.Icon == HiddenPortal) continue;
+
                 var pos = new Vector3(entry.X, 0f, entry.Z);
 
                 Minimap.PinData pin = Pins.At(pos);
@@ -231,6 +251,41 @@ namespace Varda
             }
 
             // No Save. The file names the same spots as before, only on a different list.
+            return dropped;
+        }
+
+        /// <summary>
+        /// Drops a record with no pin behind it, file and all, at once. True when there was one.
+        /// For HiddenPortal, and for nothing that stands for a pin: those go through Forget.
+        ///
+        /// Forget's wait for the map to be saved exists because the map file on disk can still
+        /// hold the pin, and the entry is what says that pin is Varda's. A hidden portal's record
+        /// says the opposite, that there is no pin, so there is nothing on disk for it to vouch
+        /// for, and keeping it until the next save would only mean a crash could bring back a
+        /// choice you had already undone.
+        ///
+        /// On the same spot as Has means it, to within Pins.SameSpot, so the two cannot disagree
+        /// about which record is this portal's.
+        /// </summary>
+        internal static bool Drop(Vector3 pos, string icon)
+        {
+            const float near = Pins.SameSpot * Pins.SameSpot;
+            bool dropped = false;
+
+            for (int i = Entries.Count - 1; i >= 0; i--)
+            {
+                Entry entry = Entries[i];
+                if (entry.Icon != icon) continue;
+
+                float dx = entry.X - pos.x;
+                float dz = entry.Z - pos.z;
+                if (dx * dx + dz * dz >= near) continue;
+
+                Entries.RemoveAt(i);
+                dropped = true;
+            }
+
+            if (dropped) Save();
             return dropped;
         }
 

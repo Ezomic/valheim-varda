@@ -1,4 +1,5 @@
 using BepInEx.Configuration;
+using UnityEngine;
 
 namespace Varda
 {
@@ -19,6 +20,7 @@ namespace Varda
         internal static ConfigEntry<bool> Dungeons;
         internal static ConfigEntry<bool> Portals;
         internal static ConfigEntry<bool> RemoveDestroyedPortals;
+        internal static ConfigEntry<KeyCode> HidePortalKey;
         internal static ConfigEntry<bool> NameDungeons;
         internal static ConfigEntry<Minimap.PinType> DungeonPinType;
         internal static ConfigEntry<Minimap.PinType> PortalPinType;
@@ -62,13 +64,41 @@ namespace Varda
             //
             // Does nothing with Portals off. What puts back a pin that was taken off by mistake
             // is the portal pinning itself again, and that is the half Portals switches off.
+            //
+            // A portal you hid with HidePortalKey is forgotten by the same two moments, so that a
+            // portal built later on the same spot is pinned rather than inheriting a choice made
+            // about one that is gone. With this off, the choice stays, and the new portal's hover
+            // text says so: it offers to show it rather than to hide it.
             RemoveDestroyedPortals = cfg.Bind("Varda", "RemoveDestroyedPortals", true,
                 "Take a portal's pin off your map when that portal is destroyed, by your hammer, "
                 + "by damage or by anybody else. If it went while you were far away, the pin comes "
                 + "off the next time you stand near where it was, once the area has finished "
                 + "loading. Walking out of sight of a portal never counts. Only pins Varda put on "
                 + "portals you built: a pin you placed by hand is never touched, and neither is a "
-                + "dungeon pin. Does nothing while Portals is off.");
+                + "dungeon pin. A portal you hid with HidePortalKey is forgotten the same way, so a "
+                + "new portal built on its spot gets a pin. Does nothing while Portals is off.");
+
+            // H, because nothing else wants it. ZInput's default bindings (ResetKBMButtons in 1.0)
+            // put the game's keys on E, R, Q, X, F, C, V, G, T, M, Tab, W A S D, the digits, F5
+            // and a few more, and nothing in assembly_valheim reads KeyCode.H directly: the
+            // letters it does read by hand are the debug-mode Z, B, K and L, and a few on menu
+            // screens. No other mod in this folder defaults to H either. Read on 2026-09-27.
+            //
+            // Not Shift+E, which is the gesture Valheim would suggest for "something else you can
+            // do to this", because Skra already puts its portal settings there, and the two would
+            // fire together.
+            //
+            // A KeyCode, which Core's config sync exempts from host control whatever the list in
+            // the plugin says; it is in that list anyway, so the list stays the whole truth.
+            HidePortalKey = cfg.Bind("Varda", "HidePortalKey", KeyCode.H,
+                "Look at a portal you built and press this to take its pin off your map, and press "
+                + "it again to put the pin back. The portal's hover text names the key and says "
+                + "which it will do. It is yours alone: nobody else's map changes and the portal "
+                + "itself is untouched, and it is remembered per character, per world and per "
+                + "portal. A pin you placed by hand is never touched. H because neither the game "
+                + "nor any of this author's other mods binds it; Shift+E would have been the "
+                + "natural gesture, but Skra's portal settings already use it. None switches this "
+                + "off. Does nothing while Portals is off.");
 
             // Off, and it was on until Robbin saw it in game. The icon already says what the
             // thing is, and a label under it repeats that in words while taking up room on a

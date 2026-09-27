@@ -137,6 +137,7 @@ namespace Varda
                 VardaConfig.Dungeons,
                 VardaConfig.Portals,
                 VardaConfig.RemoveDestroyedPortals,
+                VardaConfig.HidePortalKey,
                 VardaConfig.NameDungeons,
                 VardaConfig.DungeonPinType,
                 VardaConfig.PortalPinType,
@@ -149,15 +150,22 @@ namespace Varda
         }
 
         /// <summary>
-        /// The one check with no game event to ride: a portal that was destroyed while this
-        /// machine was not holding it, so nothing was ever sent here to say so. Portals.Sweep
-        /// throttles itself to once a second and does nothing outside a world, including the
-        /// frame in which a logout or a lost connection is taking one down, when the world's
-        /// ZDOs are already gone and everything else still answers as if you were playing.
+        /// The two things with no game event to ride.
+        ///
+        /// A portal that was destroyed while this machine was not holding it, so nothing was
+        /// ever sent here to say so. Portals.Sweep throttles itself to once a second and does
+        /// nothing outside a world, including the frame in which a logout or a lost connection is
+        /// taking one down, when the world's ZDOs are already gone and everything else still
+        /// answers as if you were playing.
+        ///
+        /// And HidePortalKey. A key has to be polled, and a mod's own Update is where every mod
+        /// here polls one. Hiding.Listen asks whether the key went down this frame before anything
+        /// that costs, so on every other frame it is two config reads and one key read.
         /// </summary>
         private void Update()
         {
             Portals.Sweep();
+            Hiding.Listen();
         }
 
         private void OnDestroy()

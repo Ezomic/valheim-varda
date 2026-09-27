@@ -32,6 +32,11 @@ namespace Varda
     /// spot ends all three, and it makes a destroyed portal simple: its pin is the one on its
     /// spot, and no neighbour has any say in it.
     ///
+    /// <b>A portal you hid keeps no pin.</b> HidePortalKey writes a record of its own kind on the
+    /// portal's spot (see <see cref="Hiding"/>). Tick asks for it before anything else, and both
+    /// moments below forget it along with the portal, so a portal built later on the same spot
+    /// starts pinned.
+    ///
     /// <b>Why "destroyed" is read off the ZDO and never off the object.</b> A portal's object
     /// disappears in two situations that look the same from the object's side: the portal is
     /// destroyed, or you walked far enough away that <c>ZNetScene.RemoveObjects</c> unloaded
@@ -113,22 +118,20 @@ namespace Varda
             Player player = Player.m_localPlayer;
             if (player == null || Minimap.instance == null) return;
 
-            // A portal whose ZNetView has let go of its ZDO is on its way out. ZNetScene resets
-            // the view and leaves the object itself to be destroyed at the end of the frame, on
-            // a destroy and on an unload alike, and the heartbeat can still land in that gap.
-            // Pinning it then would put back the very pin its destruction just took off.
-            ZNetView nview;
-            if (!portal.TryGetComponent(out nview) || !nview.IsValid()) return;
-
-            Piece piece;
-            if (!portal.TryGetComponent(out piece)) return;
-
-            // A creator of 0 is a portal nobody owns - one placed by the world, or by a build
-            // that never recorded it. Not ours, and not something to claim.
-            long creator = piece.GetCreator();
-            if (creator == 0L || creator != player.GetPlayerID()) return;
+            if (!Yours(portal, player)) return;
 
             Vector3 pos = portal.transform.position;
+
+            // You hid this one, which is a choice about this portal and outranks everything
+            // below: no pin, whatever its tag. KeepOff also takes Varda's pin off again if one is
+            // still on it, which after a hide can only be a pin that came back with a map saved
+            // before you pressed the key.
+            if (Hiding.IsHidden(pos))
+            {
+                Hiding.KeepOff(pos);
+                return;
+            }
+
             string tag = portal.GetText();
             if (tag == null) tag = "";
 
@@ -171,6 +174,31 @@ namespace Varda
                     "Pinned your portal at " + pos
                     + (tag.Length == 0 ? " (no tag yet)" : " as \"" + tag + "\""));
             }
+        }
+
+        /// <summary>
+        /// A portal you built, standing, with its ZDO in hand. The one test for "yours": Tick
+        /// pins by it, and the key and its hover line ask it too, so the portals you can hide
+        /// are exactly the portals Varda would pin.
+        /// </summary>
+        internal static bool Yours(TeleportWorld portal, Player player)
+        {
+            if (portal == null || player == null) return false;
+
+            // A portal whose ZNetView has let go of its ZDO is on its way out. ZNetScene resets
+            // the view and leaves the object itself to be destroyed at the end of the frame, on
+            // a destroy and on an unload alike, and the heartbeat can still land in that gap.
+            // Pinning it then would put back the very pin its destruction just took off.
+            ZNetView nview;
+            if (!portal.TryGetComponent(out nview) || !nview.IsValid()) return false;
+
+            Piece piece;
+            if (!portal.TryGetComponent(out piece)) return false;
+
+            // A creator of 0 is a portal nobody owns - one placed by the world, or by a build
+            // that never recorded it. Not ours, and not something to claim.
+            long creator = piece.GetCreator();
+            return creator != 0L && creator == player.GetPlayerID();
         }
 
         /// <summary>
@@ -257,6 +285,14 @@ namespace Varda
 
                     Resolve(spot, me, zdo, DestroyedHere);
                 }
+
+                // A portal you hid has no pin to take, only the choice, and that goes with it.
+                foreach (Vector3 spot in Remembered.Of(Remembered.HiddenPortal))
+                {
+                    if (Utils.DistanceXZ(spot, where) >= Pins.SameSpot) continue;
+
+                    ForgetHidden(spot, me, zdo, DestroyedHere);
+                }
             }
             catch (Exception e)
             {
@@ -300,6 +336,25 @@ namespace Varda
                     "Forgot your portal at " + spot + ": the portal " + why
                     + ", and its pin had already been taken off by hand.");
             }
+        }
+
+        /// <summary>
+        /// Forgets that you hid the portal on a remembered spot, unless a portal of yours still
+        /// stands on it. Resolve's twin for a portal with no pin: without it, a portal built
+        /// later on the same spot would start hidden, inheriting a choice you made about a
+        /// portal that no longer exists, with nothing on the map to say why it had no pin.
+        /// </summary>
+        private static void ForgetHidden(Vector3 spot, long me, ZDO dying, string why)
+        {
+            if (Stands(spot, me, dying)) return;
+
+            if (!Remembered.Drop(spot, Remembered.HiddenPortal)) return;
+
+            if (!VardaConfig.Verbose.Value) return;
+
+            VardaPlugin.Log.LogInfo(
+                "Forgot that you hid your portal at " + spot + ": the portal " + why
+                + ". A portal built there again gets a pin.");
         }
 
         /// <summary>
@@ -421,21 +476,15 @@ namespace Varda
 
             foreach (Vector3 spot in Remembered.Of(Remembered.Portal))
             {
-                if (!Settled(spot, centre)) continue;
+                if (Due(spot, centre, now)) Resolve(spot, me, null, FoundGone);
+            }
 
-                var key = new Vector2(spot.x, spot.z);
-                SettledNow.Add(key);
-
-                float since;
-                if (!SettledSince.TryGetValue(key, out since))
-                {
-                    SettledSince[key] = now;
-                    continue;
-                }
-
-                if (now - since < SettleSeconds) continue;
-
-                Resolve(spot, me, null, FoundGone);
+            // On the same clocks. A spot can be in both lists for a moment, after a crash brought
+            // back the pin of a portal you had hidden, and then the two share one clock, which is
+            // right: it is one spot, and it is settled or it is not.
+            foreach (Vector3 spot in Remembered.Of(Remembered.HiddenPortal))
+            {
+                if (Due(spot, centre, now)) ForgetHidden(spot, me, null, FoundGone);
             }
 
             // A spot that is not settled right now loses its clock, so leaving before the wait
@@ -447,6 +496,27 @@ namespace Varda
             }
 
             foreach (Vector2 key in NoLongerSettled) SettledSince.Remove(key);
+        }
+
+        /// <summary>
+        /// Whether a remembered spot has been settled for <see cref="SettleSeconds"/> without a
+        /// break, starting its clock the first time it is found settled.
+        /// </summary>
+        private static bool Due(Vector3 spot, Vector3 centre, float now)
+        {
+            if (!Settled(spot, centre)) return false;
+
+            var key = new Vector2(spot.x, spot.z);
+            SettledNow.Add(key);
+
+            float since;
+            if (!SettledSince.TryGetValue(key, out since))
+            {
+                SettledSince[key] = now;
+                return false;
+            }
+
+            return now - since >= SettleSeconds;
         }
 
         /// <summary>

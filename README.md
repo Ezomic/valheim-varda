@@ -50,6 +50,15 @@ Break one portal in a row and the pins on the others stay, as does a pin you pla
 by hand and any dungeon pin. `RemoveDestroyedPortals`
 in the settings turns this off, if you would rather keep a mark where a portal used to be.
 
+**One portal can be kept off your map.** Look at a portal you built and press H: its pin comes
+off and stays off. Press H again while looking at it and the pin comes back, with its tag. The
+portal's hover text says which the key will do, under the line for setting its tag. It is
+yours alone, remembered per character, per world and per portal. Nobody else's map changes, the
+portal itself is untouched, and a pin you placed by hand is never touched. If the portal is
+destroyed, Varda forgets you hid it, so a new portal built in its place gets a pin. The key is
+`HidePortalKey` in the settings, and None switches it off. It is not Shift+E because another of
+my mods already uses that on portals.
+
 ## These are ordinary pins
 
 Worth knowing before you install, because it is what happens when you uninstall.
@@ -67,9 +76,10 @@ Varda saves a portal as the game's own portal pin, so uninstalling it costs you 
 paints and nothing else.
 
 The one thing that is stored outside the map is which pins are Varda's, so their icons can
-be put back after a reload, and so a destroyed portal takes only its own pin with it. It is a
-small text file per character per world, in `BepInEx/config/Varda/`. Deleting it loses the
-pictures and no pins, though pins made before then stay put when their portal goes.
+be put back after a reload, and so a destroyed portal takes only its own pin with it. The
+portals you hid are written down there too. It is a small text file per character per world, in
+`BepInEx/config/Varda/`. Deleting it loses the pictures and no pins, though pins made before
+then stay put when their portal goes, and a portal you hid gets its pin back.
 
 ## A pin already there is left alone
 
