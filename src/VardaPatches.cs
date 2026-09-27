@@ -10,6 +10,10 @@ namespace Varda
     /// has a single method for going into a dungeon, a heartbeat on every loaded portal, and
     /// two well-defined moments where a new map and a new character arrive. Nothing here
     /// patches movement, the map's drawing, or the pin system itself.
+    ///
+    /// A destroyed portal needs no patch at all. ZDOMan announces every destroyed ZDO through
+    /// its public m_onZDODestroyed callback, which is how ZNetScene itself hears of one, and
+    /// Portals.Watch joins it from OnSpawned below.
     /// </summary>
     internal static class VardaPatches
     {
@@ -86,6 +90,11 @@ namespace Varda
 
             Remembered.Load();
             Remembered.Apply();
+
+            // After the sidecar, never before: from here on a destroyed portal is looked up in
+            // it, and Portals.Sweep treats this call as the sign that the list in memory
+            // belongs to the world now loaded.
+            Portals.Watch();
         }
     }
 }

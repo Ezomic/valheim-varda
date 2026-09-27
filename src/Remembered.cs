@@ -16,7 +16,8 @@ namespace Varda
     /// because vanilla derives it from the type. So on the next load our dungeon pins come
     /// back wearing whatever the plain icon for that type is, and the map quietly looks
     /// different from the map you left. Remembering which positions are ours is what lets the
-    /// icons be put back, and it is the same list the hand-placed icon set will need.
+    /// icons be put back, and it is the same list the hand-placed icon set will need. It is also
+    /// what lets a destroyed portal take its own pin with it and nobody else's.
     ///
     /// <b>Why not a custom PinType instead, which would carry the icon by itself.</b> Because
     /// Minimap.AddPin refuses any type past the end of the enum, and the map file is read back
@@ -143,6 +144,49 @@ namespace Varda
             {
                 VardaPlugin.Log.LogInfo("Put Varda's icons back on " + dressed + " pins.");
             }
+        }
+
+        /// <summary>
+        /// Every remembered position wearing <paramref name="icon"/>, flat, as a copy, so a
+        /// caller can Forget while it walks the list.
+        /// </summary>
+        internal static List<Vector3> Of(string icon)
+        {
+            var found = new List<Vector3>();
+
+            foreach (Entry entry in Entries)
+            {
+                if (entry.Icon == icon) found.Add(new Vector3(entry.X, 0f, entry.Z));
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Drops the entry for one spot and writes the file. True when there was one to drop.
+        ///
+        /// Matched on the icon as well as the place, so forgetting a portal can never take a
+        /// dungeon's entry with it. The spot is expected to have come out of Of, so the numbers
+        /// are the same numbers and the tolerance is only there for float noise.
+        /// </summary>
+        internal static bool Forget(Vector3 pos, string icon)
+        {
+            const float hair = 0.01f;
+            bool dropped = false;
+
+            for (int i = Entries.Count - 1; i >= 0; i--)
+            {
+                Entry entry = Entries[i];
+                if (entry.Icon != icon) continue;
+                if (Mathf.Abs(entry.X - pos.x) > hair || Mathf.Abs(entry.Z - pos.z) > hair) continue;
+
+                Entries.RemoveAt(i);
+                dropped = true;
+            }
+
+            if (dropped) Save();
+
+            return dropped;
         }
 
         /// <summary>True when a position is already one of ours, whatever it looks like.</summary>

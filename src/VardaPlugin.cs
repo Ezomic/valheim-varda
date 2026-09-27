@@ -135,6 +135,7 @@ namespace Varda
                 VardaConfig.Enabled,
                 VardaConfig.Dungeons,
                 VardaConfig.Portals,
+                VardaConfig.RemoveDestroyedPortals,
                 VardaConfig.NameDungeons,
                 VardaConfig.DungeonPinType,
                 VardaConfig.PortalPinType,
@@ -143,6 +144,16 @@ namespace Varda
                 VardaConfig.MergeRadius,
                 VardaConfig.DumpIcons,
                 VardaConfig.Verbose);
+        }
+
+        /// <summary>
+        /// The one check with no game event to ride: a portal that was destroyed while this
+        /// machine was not holding it, so nothing was ever sent here to say so. Portals.Sweep
+        /// throttles itself to once a second and does nothing outside a world.
+        /// </summary>
+        private void Update()
+        {
+            Portals.Sweep();
         }
 
         private void OnDestroy()

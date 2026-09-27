@@ -18,6 +18,7 @@ namespace Varda
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<bool> Dungeons;
         internal static ConfigEntry<bool> Portals;
+        internal static ConfigEntry<bool> RemoveDestroyedPortals;
         internal static ConfigEntry<bool> NameDungeons;
         internal static ConfigEntry<Minimap.PinType> DungeonPinType;
         internal static ConfigEntry<Minimap.PinType> PortalPinType;
@@ -47,6 +48,23 @@ namespace Varda
             Portals = cfg.Bind("Varda", "Portals", true,
                 "Pin portals you built, labelled with whatever you tagged them. Portals built "
                 + "by other players are never pinned; you would be reading their map.");
+
+            // On, because a pin for a portal that is not there any more is the map lying about
+            // your own network, and it is the one Varda pin that goes wrong by itself: a crypt
+            // does not stop being a crypt. Off is for anyone who would rather keep the mark as a
+            // record of where a portal used to stand.
+            //
+            // The second sentence of the description is the one that matters in play. A portal
+            // that went while you were far away never told this machine anything, so its pin can
+            // only come off when you are back, and "back" has to include the area having finished
+            // loading, or a portal that simply has not arrived yet would lose its pin.
+            RemoveDestroyedPortals = cfg.Bind("Varda", "RemoveDestroyedPortals", true,
+                "Take a portal's pin off your map when that portal is destroyed, by your hammer, "
+                + "by damage or by anybody else. If it went while you were far away, the pin comes "
+                + "off the next time you stand near where it was, once the area has finished "
+                + "loading. Walking out of sight of a portal never counts. Only pins Varda put on "
+                + "portals you built: a pin you placed by hand is never touched, and neither is a "
+                + "dungeon pin.");
 
             // Off, and it was on until Robbin saw it in game. The icon already says what the
             // thing is, and a label under it repeats that in words while taking up room on a
@@ -107,7 +125,8 @@ namespace Varda
             MergeRadius = cfg.Bind("Varda", "MergeRadius", 8f,
                 "Metres. A pin is not added when one already sits this close, whoever put it "
                 + "there - so re-entering a crypt does not stack pins, and a pin you placed by "
-                + "hand on the door is left alone rather than doubled.");
+                + "hand on the door is left alone rather than doubled. Two of your portals this "
+                + "close share one pin, and it stays until both are destroyed.");
 
             // A tool for drawing art, not a feature, which is why it is off and why it writes
             // once and says so. The pin sprites are serialised on the Minimap prefab inside a

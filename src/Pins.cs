@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Varda
 {
     /// <summary>
-    /// The map, reduced to the four things this mod does to it: look for a pin near a point,
-    /// add one, take one away, and put a borrowed sprite on one.
+    /// The map, reduced to the few things this mod does to it: look for a pin near a point or
+    /// exactly on one, add one, take one away, and put a borrowed sprite on one.
     ///
     /// Everything here goes through <c>Minimap.AddPin</c> and <c>Minimap.RemovePin</c>, which
     /// are public and are what the game itself uses - so a Varda pin is an ordinary pin in
@@ -86,6 +86,44 @@ namespace Varda
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// How far a pin may sit from a remembered spot and still be the pin Varda wrote there.
+        /// Only float noise needs absorbing: AddPin keeps the position it is given, the map file
+        /// writes it back as three floats, and the sidecar keeps the same numbers with "R".
+        /// </summary>
+        private const float SameSpot = 0.1f;
+
+        /// <summary>
+        /// The saved pin sitting on exactly this spot, or null.
+        ///
+        /// Not Near, and the difference is what keeps a hand-placed pin safe when Varda takes
+        /// one away. Near answers with the first pin inside MergeRadius, and beside a portal that
+        /// can be one the player put there; this answers only with a pin on the very point the
+        /// sidecar remembers. A pin carrying an owner is skipped as well. Varda always writes 0,
+        /// and a pin with somebody's id in it came off a cartography table.
+        /// </summary>
+        internal static Minimap.PinData At(Vector3 pos)
+        {
+            List<Minimap.PinData> pins = All();
+            if (pins == null) return null;
+
+            Minimap.PinData best = null;
+            float closest = SameSpot;
+
+            foreach (Minimap.PinData pin in pins)
+            {
+                if (!pin.m_save || pin.m_ownerID != 0L) continue;
+
+                float distance = Utils.DistanceXZ(pos, pin.m_pos);
+                if (distance >= closest) continue;
+
+                closest = distance;
+                best = pin;
+            }
+
+            return best;
         }
 
         /// <summary>

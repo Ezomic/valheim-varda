@@ -39,6 +39,16 @@ a second pin, and neither does going back in next week.
 it. Portals somebody else built are never pinned: that is their network, and putting it on
 your map is reading their notes rather than writing your own.
 
+**When the portal goes, its pin goes with it.** Take it down with the hammer, lose it to a
+troll, or have somebody else break it, and the pin comes off your map. Walking away from a
+portal is not the same thing and never counts. If it went at a time your game had never
+loaded it, say while you were offline or before you had been near it that session, nothing
+told your game, so the pin stays until you are next standing near that spot. Once the area
+around you has finished loading and there is still no portal of yours there, the pin comes
+off then. Only the pin Varda put on that portal is taken: a pin you
+placed beside it by hand stays, and so does any dungeon pin. `RemoveDestroyedPortals` in the
+settings turns this off, if you would rather keep a mark where a portal used to be.
+
 ## These are ordinary pins
 
 Worth knowing before you install, because it is what happens when you uninstall.
@@ -56,8 +66,9 @@ silently, and then the next save writes the map back without them. Uninstalling 
 you an icon. It does not cost you the pin.
 
 The one thing that is stored outside the map is which pins are Varda's, so their icons can
-be put back after a reload. It is a small text file per character per world, in
-`BepInEx/config/Varda/`. Deleting it loses the pictures and no pins.
+be put back after a reload, and so a destroyed portal takes only its own pin with it. It is a
+small text file per character per world, in `BepInEx/config/Varda/`. Deleting it loses the
+pictures and no pins, though pins made before then stay put when their portal goes.
 
 ## A pin already there is left alone
 

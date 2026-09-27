@@ -10,6 +10,9 @@ are ordinary vanilla pins wearing a supplied picture, so uninstalling costs you 
 than the pin. A custom pin type would be dropped on load by anyone without the mod and written
 out of the map on the next save.
 
+A destroyed portal takes its pin with it: at once if your game had it loaded, otherwise the next
+time you are there. Not run in game yet.
+
 The dungeon pin has its own art, drawn by `tools/icons_build.py` and loaded from beside the
 DLL. It is a stone arch with steps going down into the dark, from a reference Robbin supplied
 after fourteen shapes that did not work. Every one of those came out a horseshoe, because
