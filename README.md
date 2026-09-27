@@ -36,16 +36,18 @@ labelled correctly without this mod knowing anything about it. Coming back out d
 a second pin, and neither does going back in next week.
 
 **A portal you built pins itself with its tag,** and the pin follows the tag when you change
-it. Portals somebody else built are never pinned: that is their network, and putting it on
-your map is reading their notes rather than writing your own.
+it. Every portal gets a pin of its own, so a hub of portals built side by side shows each one
+under its own tag. Portals somebody else built are never pinned: that is their network, and
+putting it on your map is reading their notes rather than writing your own.
 
 **When the portal goes, its pin goes with it.** Take it down with the hammer, lose it to a
 troll, or have somebody else break it, and the pin comes off your map. Walking away from a
 portal is not the same thing and never counts. If it went while you were not there, say while
 you were offline or on the other side of the world, the pin can stay until you are next
 standing near that spot. Once the area around you has finished loading and there is still no
-portal of yours there, the pin comes off then. Only the pin Varda put on that portal is taken:
-a pin you placed beside it by hand stays, and so does any dungeon pin. `RemoveDestroyedPortals`
+portal of yours there, the pin comes off then. Only the pin Varda put on that portal is taken.
+Break one portal in a row and the pins on the others stay, as does a pin you placed beside it
+by hand and any dungeon pin. `RemoveDestroyedPortals`
 in the settings turns this off, if you would rather keep a mark where a portal used to be.
 
 ## These are ordinary pins
@@ -71,9 +73,19 @@ pictures and no pins, though pins made before then stay put when their portal go
 
 ## A pin already there is left alone
 
-If there is any pin within a few metres of the door, Varda adds nothing, whoever put it
+If there is any pin within a few metres of a dungeon door, Varda adds nothing, whoever put it
 there. So a spot you have already marked by hand stays exactly as you marked it, with your
-name on it, and re-entering does not stack a second pin on top of the first.
+name on it, and re-entering does not stack a second pin on top of the first. That distance is
+`MergeRadius`, 8 metres.
+
+Portals keep the same rule over a much shorter distance, `PortalMergeRadius`, one metre.
+Portals are built side by side a few metres apart, and at 8 metres one pin you had placed in
+the middle of a row would leave every portal around it without a pin of its own. So a portal
+only goes without one when another pin sits right on top of it, and the pins Varda put on
+your other portals never count. A metre is also what the game itself treats as the same spot
+for a pin, when it merges a map from a cartography table. If you pinned your portals by hand
+before installing Varda and your pins sit a little off, you get Varda's beside yours. Delete
+your own, since Varda's follows the tag, or raise the setting.
 
 ## Icons
 

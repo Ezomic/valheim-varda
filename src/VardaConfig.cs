@@ -25,6 +25,7 @@ namespace Varda
         internal static ConfigEntry<string> DungeonIcon;
         internal static ConfigEntry<string> PortalIcon;
         internal static ConfigEntry<float> MergeRadius;
+        internal static ConfigEntry<float> PortalMergeRadius;
         internal static ConfigEntry<bool> DumpIcons;
         internal static ConfigEntry<bool> Verbose;
 
@@ -125,13 +126,42 @@ namespace Varda
                 + "picture. Only worth setting if you want portals to stand out from the ones "
                 + "you pin by hand.");
 
-            // 8m because a dungeon entrance is a few metres across and a portal is two, and
-            // because re-entering the same crypt must not stack a second pin on the first.
+            // 8m because a dungeon entrance is a few metres across, and because re-entering the
+            // same crypt must not stack a second pin on the first.
+            //
+            // Dungeons only. It was the portals' radius as well, and two of your portals inside
+            // it shared one pin: with different tags each renamed that pin to its own twice a
+            // second, so a row of tagged portals showed one pin flicking between their names.
+            // Every portal has its own pin now, and PortalMergeRadius below is what is left of
+            // this rule for them.
             MergeRadius = cfg.Bind("Varda", "MergeRadius", 8f,
-                "Metres. A pin is not added when one already sits this close, whoever put it "
-                + "there - so re-entering a crypt does not stack pins, and a pin you placed by "
-                + "hand on the door is left alone rather than doubled. Two of your portals this "
-                + "close share one pin, and it stays until both are destroyed.");
+                "Metres, for dungeons. A dungeon pin is not added when a pin already sits this "
+                + "close to the door, whoever put it there. So re-entering a crypt does not stack "
+                + "pins, and a pin you placed by hand on the door is left alone rather than "
+                + "doubled. Portals have their own setting, PortalMergeRadius.");
+
+            // A metre, and not the 8 it inherited, because all that is left for this to do is
+            // keep a portal from doubling a pin somebody already put on it. Portals are built
+            // side by side, a few metres apart, and at 8m one pin you placed in the middle of a
+            // row would have left every portal round it without a pin of its own. A metre is
+            // the distance the game itself treats as the same pin: Minimap.AddSharedMapData skips
+            // a pin from a cartography table when a pin already on your map is within 1m of it,
+            // which is the same "a pin already sits here" question as this one. It is also
+            // too small for one pin to be on two portals at once, however tight the row.
+            //
+            // The cost is a pin placed by hand a couple of metres off the portal, which is now
+            // doubled rather than respected. That is visible, and fixed by deleting the hand
+            // pin, since Varda's follows the tag; a row of portals missing their pins for a
+            // reason nobody can see is neither.
+            PortalMergeRadius = cfg.Bind("Varda", "PortalMergeRadius", 1f,
+                "Metres, for portals. A portal of yours gets no pin of its own while another pin "
+                + "already sits this close to it, such as one you placed on it by hand, so the two "
+                + "are not doubled. The pins Varda put on your other portals never count, so "
+                + "portals built side by side each keep their own. One metre is what the game "
+                + "itself treats as the same spot for a pin, and it is small enough that a pin "
+                + "only ever stands in for the portal it is on, never the one beside it. Raising "
+                + "it respects hand pins placed less exactly, but keep it under half the gap "
+                + "between your portals, or one pin will leave its neighbours without theirs.");
 
             // A tool for drawing art, not a feature, which is why it is off and why it writes
             // once and says so. The pin sprites are serialised on the Minimap prefab inside a

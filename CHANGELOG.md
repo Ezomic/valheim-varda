@@ -13,6 +13,9 @@ every one of them alike.
 A destroyed portal takes its pin with it: at once if you are there, otherwise by the next time
 you are. Not run in game yet.
 
+Every portal gets a pin of its own, so a row of tagged portals side by side shows every tag. Not
+run in game yet.
+
 The dungeon pin has its own art, drawn by `tools/icons_build.py` and loaded from beside the
 DLL. It is a stone arch with steps going down into the dark, from a reference Robbin supplied
 after fourteen shapes that did not work. Every one of those came out a horseshoe, because

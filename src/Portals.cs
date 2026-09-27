@@ -22,6 +22,16 @@ namespace Varda
     /// <c>Piece.GetCreator()</c> against your own player id is the test, and it is the same
     /// number the game writes when the piece is placed.
     ///
+    /// <b>One pin per portal, on the portal's own position.</b> A portal only ever touches the
+    /// pin the sidecar remembers on its very spot. The first version let two of your portals
+    /// inside MergeRadius share one pin, found as the nearest pin to either of them, and with
+    /// two different tags each heartbeat renamed it to its own: a row of tagged portals, which
+    /// is how most people build them, showed one pin changing its name twice a second for as
+    /// long as they stood in view. The nearest pin was also how a portal came to rename a
+    /// dungeon pin, or dress one the player had put down by hand. Matching by the remembered
+    /// spot ends all three, and it makes a destroyed portal simple: its pin is the one on its
+    /// spot, and no neighbour has any say in it.
+    ///
     /// <b>Why "destroyed" is read off the ZDO and never off the object.</b> A portal's object
     /// disappears in two situations that look the same from the object's side: the portal is
     /// destroyed, or you walked far enough away that <c>ZNetScene.RemoveObjects</c> unloaded
@@ -34,17 +44,16 @@ namespace Varda
     ///
     /// <b>Two moments, because the pin is on one player's map and the portal can go while that
     /// player is somewhere else.</b> If this machine holds the portal's ZDO when it goes, the
-    /// callback says so and the pin comes off at once, though on a client only where it can
-    /// also vouch for the portal's neighbours (see <see cref="Destroyed"/>). If it does not,
-    /// because you were on the other side of the world or not playing, nothing is ever sent
-    /// here, and the only evidence left is absence: the next time you stand by the pin, once
-    /// the area has settled, no portal of yours is there. <see cref="Sweep"/> is that second
-    /// half.
+    /// callback says so and the pin comes off at once (see <see cref="Destroyed"/>). If it does
+    /// not, because you were on the other side of the world or not playing, nothing is ever
+    /// sent here, and the only evidence left is absence: the next time you stand by the pin,
+    /// once the area has settled, no portal of yours is there. <see cref="Sweep"/> is that
+    /// second half.
     ///
     /// <b>Only while Portals is on.</b> A removal that rests on judging an area can be wrong,
-    /// and what puts a wrongly removed pin back is Tick, which stops when Portals is off. The
-    /// host's removals cannot be wrong that way and they stop as well, so that the switch means
-    /// one thing: off, Varda leaves portal pins alone entirely.
+    /// and what puts a wrongly removed pin back is Tick, which stops when Portals is off. A
+    /// removal at the moment of destruction cannot be wrong that way and it stops as well, so
+    /// that the switch means one thing: off, Varda leaves portal pins alone entirely.
     /// </summary>
     internal static class Portals
     {
@@ -57,10 +66,9 @@ namespace Varda
         /// IsAreaReady holds, however much it has already received, because nothing tells a
         /// client that the server has finished sending an area. This asks for the same thing
         /// with room over it. Nothing here is in a hurry: a portal destroyed while this machine
-        /// held it has usually been handled by <see cref="Destroyed"/> already, so what is left
-        /// is a pin that has been wrong since before you arrived, or one a client handed on
-        /// because you had only just got there, and ten seconds more of either costs nothing.
-        /// Taking the pin off a portal that still stands would cost a great deal more.
+        /// held it has been handled by <see cref="Destroyed"/> already, so what is left is a pin
+        /// that has been wrong since before you arrived, and ten seconds more of that costs
+        /// nothing. Taking the pin off a portal that still stands would cost a great deal more.
         /// </summary>
         private const float SettleSeconds = 10f;
 
@@ -82,10 +90,19 @@ namespace Varda
         private static readonly List<Vector2> NoLongerSettled = new List<Vector2>();
         private static readonly List<ZDO> Nearby = new List<ZDO>();
 
+        /// <summary>
+        /// The pins Varda put on portals, which Tick passes over when it asks whether a pin
+        /// already sits on a portal. Those belong to the portals they are on, so a row of portals
+        /// side by side each keeps its own. One delegate for the life of the process, because
+        /// Tick asks twice a second for every portal of yours that is loaded.
+        /// </summary>
+        private static readonly Predicate<Minimap.PinData> PortalPin =
+            pin => Remembered.Has(pin.m_pos, Remembered.Portal);
+
         private const string DestroyedHere = "was destroyed while your game had it loaded";
 
-        // Not "when you came back". A client that hears of a destroy before the area around it
-        // has settled hands it to the sweep as well, and that player may never have left.
+        // Not "when you came back". A portal broken while RemoveDestroyedPortals was off is found
+        // this way too, once the switch is back on, by a player who may never have left.
         private const string FoundGone = "was not there once the area around it had settled";
 
         internal static void Tick(TeleportWorld portal)
@@ -112,52 +129,68 @@ namespace Varda
             if (creator == 0L || creator != player.GetPlayerID()) return;
 
             Vector3 pos = portal.transform.position;
-            float radius = VardaConfig.MergeRadius.Value;
             string tag = portal.GetText();
             if (tag == null) tag = "";
 
-            Minimap.PinData existing = Pins.Near(pos, radius);
+            bool remembered = Remembered.Has(pos, Remembered.Portal);
 
-            if (existing == null)
+            if (remembered)
             {
-                Minimap.PinData pin = Pins.Add(
-                    pos, VardaConfig.PortalPinType.Value, tag, Icons.Portal());
+                Minimap.PinData own = Pins.At(pos);
 
-                if (pin == null) return;
-
-                Remembered.Note(pos, Remembered.Portal);
-
-                if (VardaConfig.Verbose.Value)
+                if (own != null)
                 {
-                    VardaPlugin.Log.LogInfo(
-                        "Pinned your portal at " + pos
-                        + (tag.Length == 0 ? " (no tag yet)" : " as \"" + tag + "\""));
+                    if (own.m_name != tag) Rename(own, tag);
+                    return;
                 }
 
-                return;
+                // Remembered and gone from the map means it was deleted by hand. It is pinned
+                // again below, as it always has been while the portal stands, unless a pin of
+                // the player's now sits on the portal instead, which the check below respects.
             }
 
-            // Something is already here. Only ever touch it if it is one of ours: a pin the
-            // player placed on their own portal by hand is theirs, and renaming it out from
-            // under them is the kind of thing that makes a mod feel like it is fighting you.
-            if (!Remembered.Holds(pos, radius)) return;
+            // Something already on this portal that is not one of Varda's portal pins: most
+            // likely a pin you placed on it by hand, possibly one from a cartography table. It
+            // stands for the portal, whoever put it there, and a second pin on top of it would be
+            // the doubling this check exists to stop. Varda's pins on your other portals are
+            // passed over, which is what lets portals side by side keep a pin each, and the
+            // radius is kept small for the same reason: see PortalMergeRadius.
+            float radius = VardaConfig.PortalMergeRadius.Value;
+            if (Pins.Near(pos, radius, PortalPin) != null) return;
 
-            if (existing.m_name == tag) return;
+            Minimap.PinData pin = Pins.Add(pos, VardaConfig.PortalPinType.Value, tag, Icons.Portal());
+            if (pin == null) return;
 
+            // Only when it is new. A pin put back after a delete already has its line, and a
+            // second one on the same spot would only have to be forgotten twice.
+            if (!remembered) Remembered.Note(pos, Remembered.Portal);
+
+            if (VardaConfig.Verbose.Value)
+            {
+                VardaPlugin.Log.LogInfo(
+                    "Pinned your portal at " + pos
+                    + (tag.Length == 0 ? " (no tag yet)" : " as \"" + tag + "\""));
+            }
+        }
+
+        /// <summary>
+        /// Gives this portal's own pin its new tag. Only ever reached with the pin found by
+        /// Pins.At on the portal's remembered spot, so it cannot be anybody else's.
+        /// </summary>
+        private static void Rename(Minimap.PinData own, string tag)
+        {
             // Renaming in place is not enough. AddPin builds a PinNameData for any pin with a
             // name, and it is that object which draws the label on the large map - writing
             // m_name afterwards changes the pin and not the thing on the screen. Replacing the
             // pin costs nothing and goes through the same path as a fresh one.
             //
-            // At the old pin's own position, not this portal's. They are the same point for a
-            // lone portal, and different when a second portal of yours inside MergeRadius is
-            // the one renaming the pin. The sidecar remembers the point the pin was first put
-            // on, and a destroyed portal finds its pin by that point alone, so a pin that moved
-            // here would outlive both portals.
-            Pins.Remove(existing);
+            // At the pin's own position rather than the portal's. They are the same point to
+            // within float noise, and the pin's numbers are the very ones the sidecar holds, so
+            // this is the one choice that can never move a pin off the spot it is found by.
+            Pins.Remove(own);
 
             Minimap.PinData renamed = Pins.Add(
-                existing.m_pos, VardaConfig.PortalPinType.Value, tag, Icons.Portal());
+                own.m_pos, VardaConfig.PortalPinType.Value, tag, Icons.Portal());
 
             if (renamed == null) return;
 
@@ -205,50 +238,24 @@ namespace Varda
                 if (zdo == null) return;
 
                 Player player = Player.m_localPlayer;
-                if (player == null || Minimap.instance == null || ZNet.instance == null) return;
+                if (player == null || Minimap.instance == null) return;
 
                 long me = player.GetPlayerID();
                 if (!IsYourPortal(zdo, me)) return;
 
+                // At once, on the host and on a client alike, because the pin on this portal's
+                // spot is this portal's and nothing else has to be asked. A client used to hand
+                // most destroys to Sweep instead: while two portals could share a pin it had to
+                // know whether the other one stood, and a client can hold a portal from anywhere
+                // on the map without its neighbours, since Game.SetConnection force-sends a
+                // portal to every peer however far away.
                 Vector3 where = zdo.GetPosition();
-                float radius = VardaConfig.MergeRadius.Value;
 
-                // Whether a neighbour that is missing here is missing from the world. The host
-                // read every ZDO from the save, so yes. A client can hold a portal from anywhere
-                // on the map without its neighbours: Game.SetConnection, run by the server's
-                // ConnectPortals every five seconds, force-sends a portal to every peer however
-                // far away, whenever it is connected or loses its partner. Deciding a shared pin
-                // from that lone ZDO would take it off while the other portal still stands. So a
-                // client only decides here for a spot it could decide in Sweep right now, and
-                // leaves the rest in the sidecar for Sweep to find once you are there.
-                bool host = ZNet.instance.IsServer();
-                bool arriving = player.IsTeleporting();
-                Vector3 centre = ZNet.instance.GetReferencePosition();
-                float now = Time.time;
-
-                // Every portal spot the sidecar holds near this one, not only the one at its
-                // exact position. Two of your portals inside MergeRadius share one pin, which
-                // sits on whichever was built first, and Resolve keeps it while either stands.
-                // So when the first one goes the pin stays, and when the second one goes later
-                // it is the first one's spot that has to be asked about.
                 foreach (Vector3 spot in Remembered.Of(Remembered.Portal))
                 {
-                    if (Utils.DistanceXZ(spot, where) >= radius) continue;
+                    if (Utils.DistanceXZ(spot, where) >= Pins.SameSpot) continue;
 
-                    if (!host && (arriving || !Trusted(spot, radius, centre, now)))
-                    {
-                        if (VardaConfig.Verbose.Value)
-                        {
-                            VardaPlugin.Log.LogInfo(
-                                "Your portal at " + where + " was destroyed, but the area around "
-                                + "the pin at " + spot + " has not settled here, so the pin waits "
-                                + "until it has.");
-                        }
-
-                        continue;
-                    }
-
-                    Resolve(spot, radius, me, zdo, DestroyedHere);
+                    Resolve(spot, me, zdo, DestroyedHere);
                 }
             }
             catch (Exception e)
@@ -261,27 +268,17 @@ namespace Varda
 
         /// <summary>
         /// Takes the pin off a remembered portal spot and forgets the spot, unless a portal of
-        /// yours still stands within MergeRadius of it. The one place either moment ends up.
+        /// yours still stands on it. The one place either moment ends up.
         /// </summary>
-        private static void Resolve(Vector3 spot, float radius, long me, ZDO dying, string why)
+        private static void Resolve(Vector3 spot, long me, ZDO dying, string why)
         {
-            if (Stands(spot, radius, me, dying))
-            {
-                // Only said for the destroy, which happens once. The sweep would say it every
-                // second for as long as you stood beside a portal that is perfectly fine.
-                if (dying != null && VardaConfig.Verbose.Value)
-                {
-                    VardaPlugin.Log.LogInfo(
-                        "Your portal at " + dying.GetPosition() + " was destroyed, but another of "
-                        + "yours stands within " + radius + "m of the pin at " + spot
-                        + ", so the pin stays.");
-                }
+            // Nearly always no from the destroy, where it only guards against Stands being unable
+            // to look. From the sweep it is the whole question, and it is asked every second while
+            // you stand beside a portal that is perfectly fine, which is why it says nothing.
+            if (Stands(spot, me, dying)) return;
 
-                return;
-            }
-
-            // At, never Near. Near answers with whichever pin is first inside the radius, and
-            // beside a portal that can be one the player put there by hand.
+            // At, never Near. Near answers with whichever pin is first inside a radius, and beside
+            // a portal that can be one the player put there by hand.
             Minimap.PinData pin = Pins.At(spot);
             if (pin != null) Pins.Remove(pin);
 
@@ -330,32 +327,34 @@ namespace Varda
         }
 
         /// <summary>
-        /// Whether a portal of yours stands within <paramref name="radius"/> of a spot, going by
-        /// the ZDOs this machine holds. <paramref name="dying"/> is left out: while its own
-        /// destruction is being announced it is still in the sector lists.
+        /// Whether a portal of yours stands on a remembered spot, going by the ZDOs this machine
+        /// holds. <paramref name="dying"/> is left out: while its own destruction is being
+        /// announced it is still in the sector lists.
+        ///
+        /// On the spot, to within <see cref="Pins.SameSpot"/>, and not anywhere near it. A pin is
+        /// put on its portal's own position, which is the portal's ZDO position to the last bit,
+        /// so a portal of yours a few metres off is a different portal with a pin of its own, and
+        /// it has no say in this one.
         ///
         /// Says yes when it cannot look, because every caller treats yes as "leave the pin".
         /// </summary>
-        private static bool Stands(Vector3 spot, float radius, long me, ZDO dying)
+        private static bool Stands(Vector3 spot, long me, ZDO dying)
         {
             ZDOMan zdoMan = ZDOMan.instance;
-            ZoneSystem zones = ZoneSystem.instance;
-            if (zdoMan == null || zones == null) return true;
+            if (zdoMan == null || ZoneSystem.instance == null) return true;
 
-            // Classic, so the ring is a full square. The newer rounded ring leaves out the corner
-            // zones, and a pin near the corner of its zone can have a portal in the diagonal one.
-            // FindSectorObjects also reads the portal list ZDOMan keeps apart from the sectors,
-            // which is where a vanilla portal's ZDO actually lives.
-            int ring = 1 + Mathf.FloorToInt(radius / zones.m_zoneSize);
-
+            // The spot's own zone and one ring round it, classic so the ring is a full square.
+            // The portal sits in the spot's zone; the ring is there for a spot on a zone's very
+            // edge, and costs nothing. FindSectorObjects also reads the portal list ZDOMan keeps
+            // apart from the sectors, which is where a vanilla portal's ZDO actually lives.
             Nearby.Clear();
             zdoMan.FindSectorObjects(
-                ZoneSystem.GetZone(spot), new SimulationDistance(ring, 0, classic: true), Nearby);
+                ZoneSystem.GetZone(spot), new SimulationDistance(1, 0, classic: true), Nearby);
 
             foreach (ZDO zdo in Nearby)
             {
                 if (zdo == null || zdo == dying) continue;
-                if (Utils.DistanceXZ(zdo.GetPosition(), spot) >= radius) continue;
+                if (Utils.DistanceXZ(zdo.GetPosition(), spot) >= Pins.SameSpot) continue;
                 if (IsYourPortal(zdo, me)) return true;
             }
 
@@ -416,14 +415,13 @@ namespace Varda
             }
 
             Vector3 centre = ZNet.instance.GetReferencePosition();
-            float radius = VardaConfig.MergeRadius.Value;
             long me = player.GetPlayerID();
 
             SettledNow.Clear();
 
             foreach (Vector3 spot in Remembered.Of(Remembered.Portal))
             {
-                if (!Settled(spot, radius, centre)) continue;
+                if (!Settled(spot, centre)) continue;
 
                 var key = new Vector2(spot.x, spot.z);
                 SettledNow.Add(key);
@@ -437,7 +435,7 @@ namespace Varda
 
                 if (now - since < SettleSeconds) continue;
 
-                Resolve(spot, radius, me, null, FoundGone);
+                Resolve(spot, me, null, FoundGone);
             }
 
             // A spot that is not settled right now loses its clock, so leaving before the wait
@@ -452,8 +450,8 @@ namespace Varda
         }
 
         /// <summary>
-        /// Whether this machine can be trusted to hold every ZDO within <paramref name="radius"/>
-        /// of a spot, right now. The clock in Sweep is the third condition.
+        /// Whether this machine can be trusted to hold every ZDO on a spot, right now. The clock
+        /// in Sweep is the third condition.
         ///
         /// <b>Why ZDOs, and not a look round the scene for a TeleportWorld.</b> On the machine
         /// hosting the world, singleplayer included, ZDOMan read every ZDO from the save before
@@ -465,63 +463,28 @@ namespace Varda
         /// loaded, so the set of objects trails the set of ZDOs and would be a second, slower
         /// stream to wait for on top of the first.
         ///
-        /// <b>What settled has to mean.</b> First, the whole square around the pin's merge
-        /// circle is inside the active area, which ZNetScene.InActiveArea measures from the
-        /// reference position. That area is inside the ring of zones the server sends ordinary
-        /// objects for; outside it you only ever get the distant ones, a portal is not one of
-        /// them, and so a spot out there would read as empty however long you waited. The area
-        /// is convex, so four corners inside means the whole square is. Second,
-        /// ZNetScene.IsAreaReady, which is what the game's own loading screen waits on: the zone
-        /// is loaded and every ZDO held around it has been built, so the client has at least
-        /// caught up with what it was sent. What neither can say is whether anything is still
-        /// on its way, and that is what the clock is for.
+        /// <b>What settled has to mean.</b> First, the spot is inside the active area, which
+        /// ZNetScene.InActiveArea measures from the reference position. That area is inside the
+        /// ring of zones the server sends ordinary objects for; outside it you only ever get the
+        /// distant ones, a portal is not one of them, and so a spot out there would read as empty
+        /// however long you waited. The spot alone is enough, because the only portal that can
+        /// keep this pin is the one standing on it. Second, ZNetScene.IsAreaReady, which is what
+        /// the game's own loading screen waits on: the zone is loaded and every ZDO held around
+        /// it has been built, so the client has at least caught up with what it was sent. What
+        /// neither can say is whether anything is still on its way, and that is what the clock
+        /// is for.
         ///
         /// If this is ever wrong anyway, it is usually wrong for a while rather than for good: a
         /// portal that still stands pins itself again from its own heartbeat as soon as it loads
-        /// near you, because Tick finds no pin there any more. Not when a pin you placed by hand
-        /// sits within MergeRadius of that portal. Tick finds that one first, sees it is not
+        /// near you, because Tick finds no pin on it any more. Not when a pin you placed by hand
+        /// sits within PortalMergeRadius of that portal. Tick finds that one, sees it is not
         /// Varda's, and leaves it alone, so the portal stays without a Varda pin for good. That
         /// is why the clock errs long, and why nothing here runs with Portals off, when Tick
         /// does not run at all.
         /// </summary>
-        private static bool Settled(Vector3 spot, float radius, Vector3 centre)
+        private static bool Settled(Vector3 spot, Vector3 centre)
         {
-            return Inside(spot, radius, centre) && ZNetScene.instance.IsAreaReady(spot);
-        }
-
-        /// <summary>The first half of <see cref="Settled"/>: all four corners of the merge square in the active area.</summary>
-        private static bool Inside(Vector3 spot, float radius, Vector3 centre)
-        {
-            for (int x = -1; x <= 1; x += 2)
-            {
-                for (int z = -1; z <= 1; z += 2)
-                {
-                    var corner = new Vector3(spot.x + x * radius, 0f, spot.z + z * radius);
-                    if (!ZNetScene.InActiveArea(corner, centre)) return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// For a client inside <see cref="Destroyed"/>: whether Sweep has already found this spot
-        /// settled for the whole of <see cref="SettleSeconds"/>.
-        ///
-        /// The clock is up to a second old, so the active-area half is asked again, which is
-        /// what notices you having moved off. IsAreaReady is not asked again, because inside
-        /// this callback it can only say no. ZNetScene joined m_onZDODestroyed first, in its
-        /// Awake, so by the time Varda hears of a destroy ZNetScene has already dropped the
-        /// portal's object, while HandleDestroyedZDO has not yet taken the ZDO out of the sector
-        /// lists: a held ZDO without an object, in the very area being asked about.
-        /// </summary>
-        private static bool Trusted(Vector3 spot, float radius, Vector3 centre, float now)
-        {
-            float since;
-            if (!SettledSince.TryGetValue(new Vector2(spot.x, spot.z), out since)) return false;
-            if (now - since < SettleSeconds) return false;
-
-            return Inside(spot, radius, centre);
+            return ZNetScene.InActiveArea(spot, centre) && ZNetScene.instance.IsAreaReady(spot);
         }
 
         /// <summary>

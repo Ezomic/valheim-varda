@@ -17,7 +17,8 @@ namespace Varda
     /// back wearing whatever the plain icon for that type is, and the map quietly looks
     /// different from the map you left. Remembering which positions are ours is what lets the
     /// icons be put back, and it is the same list the hand-placed icon set will need. It is also
-    /// what lets a destroyed portal take its own pin with it and nobody else's.
+    /// what tells a portal's pin from the one on the portal beside it, and what lets a destroyed
+    /// portal take its own pin with it and nobody else's.
     ///
     /// <b>Why not a custom PinType instead, which would carry the icon by itself.</b> Because
     /// Minimap.AddPin will not keep a type past the end of the enum (it logs a warning and makes
@@ -142,14 +143,18 @@ namespace Varda
 
         /// <summary>
         /// Puts our icons back on the pins that came out of the map file, and drops any entry
-        /// that no longer has a pin - so deleting a pin by hand cleans the file up on the next
-        /// load rather than leaving it to grow for the life of the character.
+        /// that no longer has a pin on its spot, so deleting a pin by hand cleans the file up on
+        /// the next load rather than leaving it to grow for the life of the character.
+        ///
+        /// The pin on the entry's very spot, never the nearest one. A nearest-within-a-radius
+        /// search dressed whichever pin the map's list held first, which beside a portal could
+        /// be one the player placed by hand, and it kept an entry alive on the strength of a pin
+        /// that was not Varda's at all.
         /// </summary>
         internal static void Apply()
         {
             if (Entries.Count == 0) return;
 
-            float radius = VardaConfig.MergeRadius.Value;
             int dressed = 0;
 
             for (int i = Entries.Count - 1; i >= 0; i--)
@@ -157,7 +162,7 @@ namespace Varda
                 Entry entry = Entries[i];
                 var pos = new Vector3(entry.X, 0f, entry.Z);
 
-                Minimap.PinData pin = Pins.Near(pos, radius);
+                Minimap.PinData pin = Pins.At(pos);
                 if (pin == null)
                 {
                     Entries.RemoveAt(i);
@@ -282,14 +287,25 @@ namespace Varda
                 && Mathf.Abs(a.Z - b.Z) <= hair;
         }
 
-        /// <summary>True when a position is already one of ours, whatever it looks like.</summary>
-        internal static bool Holds(Vector3 pos, float radius)
+        /// <summary>
+        /// Whether Varda put a pin wearing <paramref name="icon"/> on this very spot.
+        ///
+        /// The kind and the exact spot, never "anything of ours nearby". The nearby version let
+        /// a portal claim whatever Varda pin sat within MergeRadius of it: the pin on the portal
+        /// beside it, so that two portals with different tags renamed one pin back and forth
+        /// twice a second, or a dungeon pin, which the portal then renamed to its own tag.
+        /// </summary>
+        internal static bool Has(Vector3 pos, string icon)
         {
+            const float near = Pins.SameSpot * Pins.SameSpot;
+
             foreach (Entry entry in Entries)
             {
+                if (entry.Icon != icon) continue;
+
                 float dx = entry.X - pos.x;
                 float dz = entry.Z - pos.z;
-                if (dx * dx + dz * dz < radius * radius) return true;
+                if (dx * dx + dz * dz < near) return true;
             }
 
             return false;

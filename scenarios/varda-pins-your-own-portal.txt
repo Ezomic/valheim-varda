@@ -1,4 +1,4 @@
-# Varda - a portal you built pins itself, and only once.
+# Varda: a portal you built pins itself, only once, and one built beside it gets a pin of its own.
 #
 # Stand somewhere with no pins of your own within a dozen metres before running this. The
 # first line asserts an empty map nearby, and a base you have already marked by hand will
@@ -8,6 +8,9 @@
 # inside a real location, and a scenario can neither place one nor press the key - so that
 # half stays a thing to walk into by hand. This covers the portal half, which is the one that
 # runs off the portal's own heartbeat and is therefore the one most likely to run twice.
+#
+# Both portals are left untagged, because no step can type a tag. What a row of TAGGED portals
+# does is covered by hand at the top of varda-forgets-a-destroyed-portal.
 
 clear
 god
@@ -32,30 +35,31 @@ wait 3
 pins 1 12
 
 # The interesting question is not whether the heartbeat pins but whether it stops. It runs
-# twice a second for as long as the portal is loaded, so without the merge check this would
-# be eight pins by now.
+# twice a second for as long as the portal is loaded, so if the portal did not find its own pin
+# on its own spot this would be eight pins by now.
 wait 4
 pins 1 12
 
-# A second portal well clear of the first gets its own pin rather than being merged into it.
-# The teleport is given a moment because TeleportTo only sets a target - UpdateTeleport
-# carries it out over later frames.
+# A second portal five metres to the side of the first, the way portals stand at a hub, gets a
+# pin of its own. The first version gave the two of them one pin between them, because anything
+# inside the 8m MergeRadius was taken for the pin already there, and with two different tags
+# that one pin changed its name twice a second.
 #
-# Twenty-four metres rather than the fourteen this first said, and the difference is the whole
-# lesson of the first run. `place` puts the piece IN FRONT of you, so after the second portal
-# the player is standing a couple of metres short of it - which left the first portal 12.0m
-# away against a radius of 12, and both pins inside it. The mod was right and the arithmetic
-# was mine. Measure from where the player ENDS UP, not from where the pieces are.
-move 24
-
-# Not a wait. TeleportTo refuses while the player is still moving AND for two seconds after
-# that, because the cooldown only ticks on frames where they are not teleporting. A fixed wait
-# here is a guess at both numbers at once.
-landed
-flatten
-place portal_wood
+# `place` puts the piece in front of you and the player does not move here, so the first portal
+# is three metres ahead and the second is nearly six away, diagonally. Measure from where the
+# player stands, not from where the pieces are: that was the whole lesson of this file's first
+# run, which put a radius exactly on a portal and counted it in.
+place portal_wood 3 5
 wait 3
 
-# One within arm's reach of where we are standing now, and both of them on the map.
-pins 1 12
-pins 2 40
+pins 2 12
+
+# Each pin on its own portal, not both on the first. Only the first portal is inside four metres
+# of the player, so only one pin may be.
+pins 1 4
+
+# And they stay two. Ten more heartbeats each, in which neither may take the other's pin for its
+# own, add a third, or drop one.
+wait 5
+pins 2 12
+pins 1 4
