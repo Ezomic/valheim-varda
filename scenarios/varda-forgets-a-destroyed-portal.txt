@@ -30,8 +30,13 @@
 #   after them however long you stood there.
 #   4. Tag the middle portal four.
 #   Expected: only the middle pin now reads four, and the log gains one line for "four".
-#   5. Remove the middle portal with the hammer.
-#   Expected: its pin goes, and the pins reading one and three stay where they were.
+#   5. Remove the middle portal with the hammer, and open BepInEx/LogOutput.log again.
+#   Expected: its pin goes, and the pins reading one and three stay where they were. The log
+#   gains exactly one new line starting Took your portal pin "four", and no new line starting
+#   Pinned your portal at. A neighbour's pin taken off with it would be back from its own
+#   portal's heartbeat within half a second, looking just as it did, and that second line is
+#   the only trace it leaves. The row further down cannot check this, because `logged` answers
+#   yes or no over the whole run and earlier lines already hold both phrases.
 #
 # A pin you placed by hand beside the portal. That is the case the exact lookup exists for:
 # Varda renames and takes off the pin on the very point it wrote one, never whichever pin is
@@ -40,9 +45,9 @@
 #   1. Build a portal and wait two seconds. Expected: a portal pin on the map.
 #   2. Open the map and double-click a few metres beside that pin to add your own. Name it mine.
 #   3. Tag the portal one, then tag it again as two.
-#   Expected: Varda's pin reads two, and "mine" still reads mine. The second tag is the one that
-#   matters: before the fix, a pin put back by a rename went to the end of the map's list, and the
-#   next rename found "mine" first and renamed that instead.
+#   Expected: Varda's pin reads two, and "mine" still reads mine. One tag was enough to break the
+#   first version: the rename put Varda's pin back at the end of the map's list, so the very next
+#   heartbeat found "mine" first and renamed that as well.
 #   4. Remove the portal with the hammer and open the map again.
 #   Expected: Varda's pin is gone and "mine" is still there. The log has a line starting
 #   "Took your portal pin".
@@ -130,9 +135,10 @@ logged the portal was destroyed while your game had it loaded. Varda no longer r
 
 # ---------------------------------------------------------------- a row of portals, a pin each
 
-# Four portals four metres apart in a row, the way a hub is built, and all four inside the 8m
-# that used to make portals share one pin. `place` puts each three metres ahead and some way to
-# the right, and the player does not move, so the four stand 3, 5, 8.5 and 12.4 metres off.
+# Four portals four metres apart in a row, the way a hub is built. Each stands within 8m of its
+# neighbour, so under the first version's rule neighbours shared a pin and the row showed about
+# two pins instead of four. `place` puts each three metres ahead and some way to the right, and
+# the player does not move, so the four stand 3, 5, 8.5 and 12.4 metres off.
 place portal_wood 3 0
 place portal_wood 3 4
 place portal_wood 3 8
@@ -157,6 +163,12 @@ pins 1 4
 # Break the nearest. Its pin goes and the three beside it stay. The first version kept the pin
 # here, because the portals beside it still stood within 8m of it, and that is the line this
 # section exists for: nothing inside four metres any more, three pins still in the row.
+#
+# What the count of three cannot show, any more than the count at the top, is a neighbour's pin
+# taken off with it. That portal's heartbeat would put a new one down within half a second, and
+# this would still read three. Nor can `logged` catch it here, since earlier lines already hold
+# both "Took your portal pin" and "Pinned your portal at". Step 5 of the tagged row at the top
+# of this file is where that is checked, by hand.
 break portal_wood
 wait 2
 

@@ -146,8 +146,11 @@ namespace Varda
             // row would have left every portal round it without a pin of its own. A metre is
             // the distance the game itself treats as the same pin: Minimap.AddSharedMapData skips
             // a pin from a cartography table when a pin already on your map is within 1m of it,
-            // which is the same "a pin already sits here" question as this one. It is also
-            // too small for one pin to be on two portals at once, however tight the row.
+            // which is the same "a pin already sits here" question as this one. In an ordinary
+            // row it also keeps a pin standing in for the portal it is on and no other: to be
+            // within a metre of two portals, a pin needs their centres under two metres apart,
+            // and portals built side by side stand a few metres apart. Nothing has measured how
+            // close two portals can be placed, so this is the ordinary row and not a guarantee.
             //
             // The cost is a pin placed by hand a couple of metres off the portal, which is now
             // doubled rather than respected. That is visible, and fixed by deleting the hand
@@ -158,10 +161,10 @@ namespace Varda
                 + "already sits this close to it, such as one you placed on it by hand, so the two "
                 + "are not doubled. The pins Varda put on your other portals never count, so "
                 + "portals built side by side each keep their own. One metre is what the game "
-                + "itself treats as the same spot for a pin, and it is small enough that a pin "
-                + "only ever stands in for the portal it is on, never the one beside it. Raising "
-                + "it respects hand pins placed less exactly, but keep it under half the gap "
-                + "between your portals, or one pin will leave its neighbours without theirs.");
+                + "itself treats as the same spot for a pin, and in an ordinary row, with portals "
+                + "a few metres apart, a pin that close stands in only for the portal it is on. "
+                + "Raising it respects hand pins placed less exactly, but keep it under half the "
+                + "gap between your portals, or one pin will leave its neighbours without theirs.");
 
             // A tool for drawing art, not a feature, which is why it is off and why it writes
             // once and says so. The pin sprites are serialised on the Minimap prefab inside a
