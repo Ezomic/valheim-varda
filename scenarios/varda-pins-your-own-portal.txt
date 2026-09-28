@@ -4,13 +4,25 @@
 # first line asserts an empty map nearby, and a base you have already marked by hand will
 # fail it for a reason that is nothing to do with the mod.
 #
-# The DUNGEON half is not covered here and cannot be. Entering one needs a real Teleport pair
-# inside a real location, and a scenario can neither place one nor press the key - so that
-# half stays a thing to walk into by hand. This covers the portal half, which is the one that
-# runs off the portal's own heartbeat and is therefore the one most likely to run twice.
+# The DUNGEON half is varda-pins-a-dungeon, which places a real crypt and walks through its
+# door. This covers the portal half, which is the one that runs off the portal's own heartbeat
+# and is therefore the one most likely to run twice.
 #
 # Both portals are left untagged, because no step can type a tag. What a row of TAGGED portals
 # does is covered by hand at the top of varda-forgets-a-destroyed-portal.
+
+# Standing still first, on the surface. The dungeon scenario runs just before this one and
+# ends by walking back out of its crypt, and on 2026-09-28 this file began while that walk was
+# still in the air: the first portal went down at y 5033, inside the crypt (Player.log has
+# "placed at world height 5033,01" two seconds before "Setting forced environment" went
+# blank), and the player landed on the surface five metres from it in plan. Both pins were
+# right, each on its own portal, and `pins 1 4` found neither, because the portal it meant was
+# never three metres away. The dungeon file ended on `landed` that day, but Devkit starts the
+# next scenario the moment the last step returns, and a block set by a LAST step is dropped at
+# that handover. The dungeon file now has a line after it for that reason, and this one waits
+# for the move as well, because a scenario run on its own or after something else cannot lean
+# on that. When nothing is in flight it answers "ready" at once.
+landed
 
 clear
 god
