@@ -75,10 +75,11 @@ pins 1 60
 enter
 landed
 
-# Not optional, and the reason is Devkit's rather than the game's. `landed` holds the runner
-# by blocking the step AFTER it, and when it is the last line there is no step after it: the
-# next scenario starts the moment it returns and drops the block with it. That is how the
-# portal file still opened inside this crypt on 2026-09-28 with the walk out above already in
-# place. A line after `landed` is what makes the wait real. It is worth asserting too: walking
-# out is not entering, so coming back to the surface must leave the one pin there and add none.
+# A line after `landed`, for a Devkit older than 1b48353. `landed` holds the runner by blocking
+# the step AFTER it, and until that commit a last line had no step after it: the next scenario
+# started the moment it returned and dropped the block with it. That is how the portal file
+# still opened inside this crypt on 2026-09-28 with the walk out above already in place. Devkit
+# now holds a run until its last step's wait is over, and the line stays because it is worth
+# asserting: walking out is not entering, so coming back to the surface must leave the one pin
+# there and add none.
 pins 1 60

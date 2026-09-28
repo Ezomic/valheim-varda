@@ -17,11 +17,11 @@
 # "placed at world height 5033,01" two seconds before "Setting forced environment" went
 # blank), and the player landed on the surface five metres from it in plan. Both pins were
 # right, each on its own portal, and `pins 1 4` found neither, because the portal it meant was
-# never three metres away. The dungeon file ended on `landed` that day, but Devkit starts the
-# next scenario the moment the last step returns, and a block set by a LAST step is dropped at
-# that handover. The dungeon file now has a line after it for that reason, and this one waits
-# for the move as well, because a scenario run on its own or after something else cannot lean
-# on that. When nothing is in flight it answers "ready" at once.
+# never three metres away. The dungeon file ended on `landed` that day, but Devkit then started
+# the next scenario the moment the last step returned, and dropped a block set by a LAST step at
+# that handover (fixed in Devkit 1b48353). The dungeon file now has a line after it as well, and
+# this one waits for the move itself, because a scenario run on its own or after something else
+# cannot lean on either. When nothing is in flight it answers "ready" at once.
 landed
 
 clear
