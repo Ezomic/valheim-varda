@@ -25,17 +25,20 @@
 # from where the file starts (see below), well past the 34 metres a stage reaches, so in a suite
 # run it stands on the world's own ground and not on the ground the files before it staged.
 #
-# ELSEWHERE, AND BACK. Nothing takes a location down again. `stage` and `wipe` leave it standing,
-# since it is neither a piece nor anything a `put` left, and the game's own `forcedelete` skips
-# everything under a LocationProxy on purpose. So the crypt stands until the world is loaded
-# again, and the file after this one used to open at its door: on 2026-09-29
+# ELSEWHERE, AND BACK. `stage` and `wipe` leave a location standing, since it is neither a piece
+# nor anything a `put` left, and the game's own `forcedelete` skips everything under a
+# LocationProxy on purpose. Until Devkit d219857 nothing took one down, so the crypt stood until
+# the world was loaded again, and the file after this one used to open at its door: on 2026-09-29
 # varda-pins-your-own-portal's first portal was refused on top of the crypt's wall ("the top of
-# LocationProxy's Cube (1)"), and seven of its twenty steps failed behind it. So the crypt is made
-# a hundred metres off and this file ends by going back to where it began, which hands the next
-# file the ground it was given. The game keeps a location inside its own 64m zone, which can shift
-# a crypt asked for 20 metres ahead by up to 30 metres, so it lands at least 90 metres from where
-# the file began. The crypt's ground reaches 21 metres from its middle and the next file's stage
-# 34 from its start, which leaves a good 30 between them. The `mark` is only there for the `back`.
+# LocationProxy's Cube (1)"), and seven of its twenty steps failed behind it. Devkit now takes
+# down what a `location` step made when the run ends, as long as you are not inside a dungeon
+# then, and this file ends on the surface. The crypt is still made a hundred metres off, for the
+# staged ground above, and this file still ends by going back to where it began, which hands the
+# next file the ground it was given and keeps it clear of the crypt on a Devkit older than that.
+# The game keeps a location inside its own 64m zone, which can shift a crypt asked for 20 metres
+# ahead by up to 30 metres, so it lands at least 90 metres from where the file began. The crypt's
+# ground reaches 21 metres from its middle and the next file's stage 34 from its start, which
+# leaves a good 30 between them. The `mark` is only there for the `back`.
 
 clear
 god
@@ -110,8 +113,9 @@ landed
 # there and add none.
 pins 1 60
 
-# Back to where the file began, for the reason at the top: the crypt cannot be taken down, so the
-# next file is kept away from it instead. `landed` for the 2s cooldown, so a next file that opens
-# with a `move` or an `enter` is not refused by the game.
+# Back to where the file began, for the reason at the top: the next file opens on the ground it
+# was handed, away from the crypt even where the crypt is not taken down. On the surface as well,
+# which Devkit needs before it takes the crypt down at the end of the run. `landed` for the 2s
+# cooldown, so a next file that opens with a `move` or an `enter` is not refused by the game.
 back
 landed
