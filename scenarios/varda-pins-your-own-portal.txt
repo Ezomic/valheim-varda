@@ -1,3 +1,4 @@
+#! nostage
 # Varda: a portal you built pins itself, only once, and one built beside it gets a pin of its own.
 #
 # Stand somewhere with no pins of your own within a dozen metres before running this. The
@@ -23,6 +24,12 @@
 # this one waits for the move itself, because a scenario run on its own or after something else
 # cannot lean on either. When nothing is in flight it answers "ready" at once.
 landed
+
+# The ground made ready here rather than before the first step, which the `#! nostage` line at
+# the top turns off. Devkit's own stage runs before `landed`, so with a walk out of the crypt
+# still in flight it would clear and level wherever the player happened to be, or find them in
+# the crypt and do nothing, and the surface this file builds on would be left as it was.
+stage
 
 clear
 god

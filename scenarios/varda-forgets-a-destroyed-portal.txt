@@ -1,3 +1,4 @@
+#! nostage
 # Varda: a portal you destroy takes its pin with it, walking away from one does not, and in a
 # row of portals only the broken one's pin goes.
 #
@@ -6,6 +7,15 @@
 # count below would be one out. varda-pins-your-own-portal leaves two standing, so do not run
 # this where that one last ran. This file breaks everything it builds, so it can be run again
 # in the same place.
+#
+# The ground is cleared and levelled by a `stage` of the file's own, written after that count,
+# and the `#! nostage` line at the top turns off the one Devkit would run before the first step.
+# A stage takes down every piece within 34 metres, a portal of yours included, and Varda hears
+# that destroy like any other and logs "Took your portal pin". `logged` reads from the start of
+# the run, stage and all. So a stage at step 0 would take a leftover portal away before the
+# count could find it, and the first thing to fail would be `logged Took your portal pin no`,
+# reading as a pin lost to walking away. Staged after the count, a leftover portal fails the
+# count, which says what is wrong.
 #
 # Needs Verbose = true in ezomic.valheim.varda.cfg, as own-profile has it. The line saying
 # Varda has forgotten the portal is a Verbose line, and `logged` is the only step that can see
@@ -70,9 +80,13 @@
 clear
 god
 ghost
-flatten
 
 count portal_wood 0 40
+
+# Only now, for the reason at the top. The flatten is the file's older way to the same ground and
+# finds it level already, unless StageRadius has been set below FlattenRadius.
+stage
+flatten
 
 # A known map. DELETES saved pins within 40m, hand-placed ones included.
 unpin 40

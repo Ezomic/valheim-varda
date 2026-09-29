@@ -1,3 +1,4 @@
+#! nostage
 # Varda: look at a portal you built and press H, and its pin comes off your map and stays off.
 # Press it again and the pin comes back with its tag. The portal beside it keeps its pin
 # throughout, and breaking a hidden portal forgets that it was hidden, so a new portal built on
@@ -6,6 +7,14 @@
 # Stand somewhere with no portals of your own within 40 metres, the same as
 # varda-forgets-a-destroyed-portal, and for the same reason: a portal left standing nearby pins
 # itself and every count below would be one out. This file breaks everything it builds.
+#
+# The ground is staged after that count, not before the first step, which is what the
+# `#! nostage` line at the top is for. A stage takes down every piece within 34 metres, and a run
+# that stopped halfway leaves a hidden portal standing here. Taken down by a stage at step 0, it
+# would write "Forgot that you hid your portal" into the log before anything below had been
+# hidden, and `logged Forgot that you hid your portal yes` reads from the start of the run, so it
+# would pass without the destroy it is there for. Staged after the count, the leftover fails the
+# count first.
 #
 # Needs Verbose = true in ezomic.valheim.varda.cfg, as own-profile has it. Several `logged` lines
 # below read Verbose lines, and they are the only way to tell a pin that stayed put from one that
@@ -86,9 +95,13 @@
 clear
 god
 ghost
-flatten
 
 count portal_wood 0 40
+
+# Only now, for the reason at the top. The flatten is the file's older way to the same ground and
+# finds it level already, unless StageRadius has been set below FlattenRadius.
+stage
+flatten
 
 # A known map. DELETES saved pins within 40m, hand-placed ones included.
 unpin 40
