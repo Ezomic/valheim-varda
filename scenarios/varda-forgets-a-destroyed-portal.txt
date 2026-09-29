@@ -147,6 +147,13 @@ pins 0 12
 # written once the entry has been dropped.
 logged the portal was destroyed while your game had it loaded. Varda no longer remembers it yes
 
+# What the portal dropped, before the row goes up where it stood. A broken portal leaves its fine
+# wood, greydwarf eyes and surtling cores lying loose on its spot, and the first portal of the row
+# goes on that very spot: placed over loose drops, a piece shoves them out of its colliders, and
+# they land wherever that throws them, under your feet included. No step here counts drops, so
+# taking them away costs no check.
+sweep
+
 # ---------------------------------------------------------------- a row of portals, a pin each
 
 # Four portals four metres apart in a row, the way a hub is built. Each stands within 8m of its
@@ -206,3 +213,12 @@ break portal_wood 16
 wait 2
 count portal_wood 0 40
 pins 0 40
+
+# And what they dropped. On 2026-09-29 this file ended with fifteen drops lying round the player,
+# the stuff of five broken portals, and varda-hides-one-portal opened by failing its `flatten`: the
+# player was half a metre above level ground with nothing under them, straight after a stage that
+# had taken away those drops and nothing else. That is a drop holding the player up until the
+# stage took it, and the flatten coming before the fall was over. The wait is for any such fall to
+# be over here, before the next file asks where the ground is.
+sweep
+wait 1

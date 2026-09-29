@@ -10,7 +10,8 @@
 # Run it in SINGLEPLAYER. Placing a location is the host's to do; on a client the vanilla call
 # returns false and says nothing about why.
 #
-# Stand somewhere with no pins of your own within 60 metres. The first line asserts that.
+# Face somewhere with no pins of your own within 60 metres of the spot a hundred metres ahead of
+# you. The file goes there before anything else, and the first check after it asserts that.
 #
 # The crypt is placed with disableSave, so it is gone on the next load and no world is left
 # carrying a burial chamber somebody put there to check a pin. The PIN is saved, though, and
@@ -20,13 +21,29 @@
 # first step, because the crypt wants the world's own ground under it. A location levels its own
 # pad with the game's older terrain system, and the game applies that before the terrain compiler
 # a stage writes to, so on staged ground the stage's change is added on top of the pad, and the
-# crypt's doorway can end up under the ground or above it. A suite run still starts this file on
-# ground the files before it staged, since nothing here moves you first, the way it used to start
-# on their `flatten`, so run it from somewhere nothing has levelled when the crypt's ground matters.
+# crypt's doorway can end up under the ground or above it. The crypt goes down a hundred metres
+# from where the file starts (see below), well past the 34 metres a stage reaches, so in a suite
+# run it stands on the world's own ground and not on the ground the files before it staged.
+#
+# ELSEWHERE, AND BACK. Nothing takes a location down again. `stage` and `wipe` leave it standing,
+# since it is neither a piece nor anything a `put` left, and the game's own `forcedelete` skips
+# everything under a LocationProxy on purpose. So the crypt stands until the world is loaded
+# again, and the file after this one used to open at its door: on 2026-09-29
+# varda-pins-your-own-portal's first portal was refused on top of the crypt's wall ("the top of
+# LocationProxy's Cube (1)"), and seven of its twenty steps failed behind it. So the crypt is made
+# a hundred metres off and this file ends by going back to where it began, which hands the next
+# file the ground it was given. The game keeps a location inside its own 64m zone, which can shift
+# a crypt asked for 20 metres ahead by up to 30 metres, so it lands at least 90 metres from where
+# the file began. The crypt's ground reaches 21 metres from its middle and the next file's stage
+# 34 from its start, which leaves a good 30 between them. The `mark` is only there for the `back`.
 
 clear
 god
 ghost
+
+mark
+move 100
+landed
 
 # A known map, the way `wipe` gives a known patch of ground. It DELETES saved pins within 60m,
 # including ones you placed by hand, which is the same bargain wipe makes with buildings.
@@ -92,3 +109,9 @@ landed
 # asserting: walking out is not entering, so coming back to the surface must leave the one pin
 # there and add none.
 pins 1 60
+
+# Back to where the file began, for the reason at the top: the crypt cannot be taken down, so the
+# next file is kept away from it instead. `landed` for the 2s cooldown, so a next file that opens
+# with a `move` or an `enter` is not refused by the game.
+back
+landed

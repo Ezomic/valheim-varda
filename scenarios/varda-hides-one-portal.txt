@@ -224,6 +224,11 @@ mod vardatest
 went hidden hiddenportals=(\d+) -1
 logged Forgot that you hid your portal yes
 
+# What VardaHideHome dropped, before a portal goes up where it stood: placed over loose drops, a
+# piece shoves them out of its colliders, and they land wherever that throws them, under your
+# feet included. See the end of varda-forgets-a-destroyed-portal for what one did there.
+sweep
+
 # A new portal on the very spot VardaHideHome stood on. Had the choice outlived the portal, this
 # one would start hidden and never pin itself. That can only fail here if the new portal lands
 # within a tenth of a metre of the old one, which it should, since `place` measures from the
@@ -242,3 +247,8 @@ break portal_wood 16
 wait 2
 count portal_wood 0 40
 pins 0 40
+
+# And what the two dropped, so the next file does not open standing on one. The wait is for a fall
+# off one to be over before it starts; see the end of varda-forgets-a-destroyed-portal.
+sweep
+wait 1

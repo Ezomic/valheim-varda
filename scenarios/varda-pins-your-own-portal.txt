@@ -12,8 +12,10 @@
 # Both portals are left untagged, because no step can type a tag. What a row of TAGGED portals
 # does is covered by hand at the top of varda-forgets-a-destroyed-portal.
 
-# Standing still first, on the surface. The dungeon scenario runs just before this one and
-# ends by walking back out of its crypt, and on 2026-09-28 this file began while that walk was
+# Standing still first, on the surface. The dungeon scenario runs just before this one and ends
+# by walking back out of its crypt and then going back to where it began, a hundred metres from
+# the crypt. It used to end at the crypt's door, and on 2026-09-29 the first `place` below met the
+# crypt's wall. On 2026-09-28 this file began while the walk out of the crypt was
 # still in the air: the first portal went down at y 5033, inside the crypt (Player.log has
 # "placed at world height 5033,01" two seconds before "Setting forced environment" went
 # blank), and the player landed on the surface five metres from it in plan. Both pins were
