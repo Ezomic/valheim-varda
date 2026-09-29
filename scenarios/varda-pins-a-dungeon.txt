@@ -1,3 +1,4 @@
+#! nostage
 # Varda - a dungeon pins itself when you go in, and only when you go IN.
 #
 # This is the feature the mod is named for, and until now it was a thing to walk into by hand.
@@ -14,6 +15,14 @@
 # The crypt is placed with disableSave, so it is gone on the next load and no world is left
 # carrying a burial chamber somebody put there to check a pin. The PIN is saved, though, and
 # that is the point of it - clear it by hand afterwards if you care.
+#
+# NO STAGE. The `#! nostage` line at the top turns off the ground Devkit makes ready before the
+# first step, because the crypt wants the world's own ground under it. A location levels its own
+# pad with the game's older terrain system, and the game applies that before the terrain compiler
+# a stage writes to, so on staged ground the stage's change is added on top of the pad, and the
+# crypt's doorway can end up under the ground or above it. A suite run still starts this file on
+# ground the files before it staged, since nothing here moves you first, the way it used to start
+# on their `flatten`, so run it from somewhere nothing has levelled when the crypt's ground matters.
 
 clear
 god
