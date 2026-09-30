@@ -1,23 +1,18 @@
 # Changelog
 
-## 0.1.0 - unreleased
+## 1.0.0 - 2026-09-30
 
-First version. Builds and deploys, **never played**, though it has been run far enough to read
-the map's own art out of it.
+First release.
 
 Dungeons pin themselves when you go in, portals you built pin themselves with their tag. Both
 are ordinary vanilla pins wearing a supplied picture, so uninstalling costs you an icon rather
 than the pin. A custom pin type would come back as the plain marker for anyone without the mod,
 every one of them alike.
 
-A destroyed portal takes its pin with it: at once if you are there, otherwise by the next time
-you are. Not run in game yet.
-
-Every portal gets a pin of its own, so a row of tagged portals side by side shows every tag. Not
-run in game yet.
-
-Look at a portal you built and press H to take its pin off your map, and again to put it back.
-Not run in game yet.
+Every portal gets a pin of its own, so a row of tagged portals side by side shows every tag. A
+destroyed portal takes its pin with it: at once if you are there, otherwise by the next time
+you are. Look at a portal you built and press H to take its pin off your map, and again to put
+it back. That only changes your own map.
 
 The dungeon pin has its own art, drawn by `tools/icons_build.py` and loaded from beside the
 DLL. It is a stone arch with steps going down into the dark, from a reference Robbin supplied
@@ -39,12 +34,10 @@ Settled by running it, none of it readable any other way:
   temple, trader, Hildir's camp, Bog Witch camp and ancient upgrade station. The donor list
   inherited from Delve matches none of them.
 
-Both halves were run in game on 2026-09-22, by `varda-pins-a-dungeon` and
-`varda-pins-your-own-portal`. That covered the pin appearing on the way in and not for walking
-past, the label being suppressed, a second entry not stacking a pin, a portal pinning itself
-once, and two portals 24 m apart getting a pin each. The portal scenario now puts the second
-portal five metres from the first, to check portals side by side, and that version has not run
-yet.
+Run in game before release with Devkit scenarios for the dungeon pin, portal pins, a row of four
+portals, a broken portal losing its pin, and the H key, which was also tried by hand. Not run on
+a server, where a portal broken while you were away only loses its pin once the area around you
+has finished loading.
 
 **`NameDungeons` is off.** The icon says what the thing is. Turn it on to tell two crypts apart
 without opening them.
