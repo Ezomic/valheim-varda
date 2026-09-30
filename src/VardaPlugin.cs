@@ -22,8 +22,9 @@ namespace Varda
     ///
     /// The pins are ordinary vanilla pins - you can rename them, tick them off, filter them
     /// and delete them, and they are written into the map file with all the others. The mod
-    /// only paints its own picture on top. That is deliberate: a custom pin type would be
-    /// dropped on load by anyone without the mod, silently taking their pins with it.
+    /// only paints its own picture on top. That is deliberate: a custom pin type would come
+    /// back as the plain marker for anyone without the mod, every one of them alike, having
+    /// lost both what it was and the filter row it hid under.
     ///
     /// Client-side in the strict sense: every effect is computed by the owning client off
     /// state it already has, and nothing is written anywhere but this machine. A player
@@ -135,14 +136,36 @@ namespace Varda
                 VardaConfig.Enabled,
                 VardaConfig.Dungeons,
                 VardaConfig.Portals,
+                VardaConfig.RemoveDestroyedPortals,
+                VardaConfig.HidePortalKey,
                 VardaConfig.NameDungeons,
                 VardaConfig.DungeonPinType,
                 VardaConfig.PortalPinType,
                 VardaConfig.DungeonIcon,
                 VardaConfig.PortalIcon,
                 VardaConfig.MergeRadius,
+                VardaConfig.PortalMergeRadius,
                 VardaConfig.DumpIcons,
                 VardaConfig.Verbose);
+        }
+
+        /// <summary>
+        /// The two things with no game event to ride.
+        ///
+        /// A portal that was destroyed while this machine was not holding it, so nothing was
+        /// ever sent here to say so. Portals.Sweep throttles itself to once a second and does
+        /// nothing outside a world, including the frame in which a logout or a lost connection is
+        /// taking one down, when the world's ZDOs are already gone and everything else still
+        /// answers as if you were playing.
+        ///
+        /// And HidePortalKey. A key has to be polled, and a mod's own Update is where every mod
+        /// here polls one. Hiding.Listen asks whether the key went down this frame before anything
+        /// that costs, so on every other frame it is two config reads and one key read.
+        /// </summary>
+        private void Update()
+        {
+            Portals.Sweep();
+            Hiding.Listen();
         }
 
         private void OnDestroy()

@@ -1,3 +1,4 @@
+using System;
 using HarmonyLib;
 
 namespace Varda
@@ -6,10 +7,15 @@ namespace Varda
     /// The mod's Harmony patches. One class named in the plugin's PatchAll, so nothing goes
     /// live by being written.
     ///
-    /// Four hooks and no more, which is most of the argument for the design: the game already
-    /// has a single method for going into a dungeon, a heartbeat on every loaded portal, and
-    /// two well-defined moments where a new map and a new character arrive. Nothing here
+    /// Eight hooks and no more, which is most of the argument for the design: the game already
+    /// has a single method for going into a dungeon, a heartbeat on every loaded portal, two
+    /// well-defined moments where a new map and a new character arrive, one place the map is
+    /// saved, a portal's own hover text, and the console's table of commands. Nothing here
     /// patches movement, the map's drawing, or the pin system itself.
+    ///
+    /// A destroyed portal needs no patch at all. ZDOMan announces every destroyed ZDO through
+    /// its public m_onZDODestroyed callback, which is how ZNetScene itself hears of one, and
+    /// Portals.Watch joins it from OnSpawned below.
     /// </summary>
     internal static class VardaPatches
     {
@@ -50,6 +56,45 @@ namespace Varda
         }
 
         /// <summary>
+        /// The line naming HidePortalKey, on a portal of yours. Appended, because the text the
+        /// portal returns is already localised and finished, and at the default priority, so
+        /// with Skra installed it sits straight under vanilla's "[E] Set tag", where the preview
+        /// Robbin picked put it, and Skra's owner line follows it.
+        ///
+        /// Inside a try, because Hud asks for this text every frame the crosshair is on a
+        /// portal, and a throw here would take the portal's whole hover text with it each time.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TeleportWorld), nameof(TeleportWorld.GetHoverText))]
+        private static void PortalHoverText(TeleportWorld __instance, ref string __result)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(__result)) return;
+
+                __result += Hiding.HoverLine(__instance);
+            }
+            catch (Exception e)
+            {
+                VardaPlugin.Log.LogWarning(
+                    "Could not add the hide line to a portal's hover text (" + e.GetType().Name
+                    + ": " + e.Message + ").");
+            }
+        }
+
+        /// <summary>
+        /// Registers `vardatest` once the console's command table has been built. Every Terminal
+        /// calls InitTerminal from its Awake, the game's own flag makes all but the first return
+        /// at once, and DevConsole.Register keeps a flag of its own for the same reason.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Terminal), "InitTerminal")]
+        private static void InitTerminal()
+        {
+            DevConsole.Register();
+        }
+
+        /// <summary>
         /// A new map means new sprites. The borrowed half cannot be cached across worlds: in
         /// 1.0 the soft-ref bundles unload at logout and destroy what was in them, so a sprite
         /// held from the last session is a destroyed object.
@@ -86,6 +131,35 @@ namespace Varda
 
             Remembered.Load();
             Remembered.Apply();
+
+            // After the sidecar, never before: from here on a destroyed portal is looked up in
+            // it, and Portals.Sweep treats this call as the sign that the list in memory
+            // belongs to the world now loaded.
+            Portals.Watch();
+        }
+
+        /// <summary>
+        /// The first half of the map reaching disk: the pins have just been copied into the
+        /// profile. Game.SavePlayerProfile is the only caller, and it skips this whenever it is
+        /// not going to save the character at all, which is why the copy is watched here rather
+        /// than assumed from SavePlayerProfile having been called. See Remembered.Forget.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Minimap), nameof(Minimap.SaveMapData))]
+        private static void SaveMapData()
+        {
+            Remembered.MapTaken();
+        }
+
+        /// <summary>
+        /// The second half: that profile has been written. A postfix does not run when the
+        /// original throws, so a save that failed loudly lets nothing go.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Game), nameof(Game.SavePlayerProfile))]
+        private static void SavePlayerProfile()
+        {
+            Remembered.MapWritten();
         }
     }
 }

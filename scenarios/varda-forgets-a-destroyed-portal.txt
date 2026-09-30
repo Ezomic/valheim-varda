@@ -1,0 +1,224 @@
+#! nostage
+# Varda: a portal you destroy takes its pin with it, walking away from one does not, and in a
+# row of portals only the broken one's pin goes.
+#
+# Stand somewhere with no portals of your own within 40 metres. The first lines check that,
+# because a portal left standing nearby pins itself again from its own heartbeat and every
+# count below would be one out. varda-pins-your-own-portal leaves two standing, so do not run
+# this where that one last ran. This file breaks everything it builds, so it can be run again
+# in the same place.
+#
+# The ground is cleared and levelled by a `stage` of the file's own, written after that count,
+# and the `#! nostage` line at the top turns off the one Devkit would run before the first step.
+# A stage takes down every piece within 34 metres, a portal of yours included, and Varda hears
+# that destroy like any other and logs "Took your portal pin". `logged` reads from the start of
+# the run, stage and all. So a stage at step 0 would take a leftover portal away before the
+# count could find it, and the first thing to fail would be `logged Took your portal pin no`,
+# reading as a pin lost to walking away. Staged after the count, a leftover portal fails the
+# count, which says what is wrong.
+#
+# Needs Verbose = true in ezomic.valheim.varda.cfg, as own-profile has it. The line saying
+# Varda has forgotten the portal is a Verbose line, and `logged` is the only step that can see
+# the entry was dropped. The file itself is only rewritten at the next save of the character,
+# so that a crash cannot leave the map with a pin the file has already let go of.
+#
+# THREE THINGS THIS FILE CANNOT SHOW. All are worth doing by hand before a release.
+#
+# A row of TAGGED portals. Every portal has its own pin, and a portal only ever renames the one
+# on its own spot. The first version let portals within 8m of each other share a pin, and with
+# two different tags each heartbeat renamed it to its own, so the pin changed its name twice a
+# second for as long as you stood there. No step can type a tag: `use` reaches
+# TeleportWorld.Interact, which opens the tag box through TextInput.RequestText, and nothing can
+# type into that box or press its OK. So the row below is untagged, which shows a pin each but
+# cannot show a name holding still. By hand:
+#   1. Build three portals in a row, about four metres apart, and tag them one, two and three.
+#   2. Stand still for ten seconds, then open the map and zoom all the way in.
+#   Expected: three portal pins, one on each portal, reading one, two and three. None of them
+#   changes its name while you watch.
+#   3. Open BepInEx/LogOutput.log.
+#   Expected: one line Renamed a portal pin to "one", one for "two" and one for "three", and none
+#   after them however long you stood there.
+#   4. Tag the middle portal four.
+#   Expected: only the middle pin now reads four, and the log gains one line for "four".
+#   5. Remove the middle portal with the hammer, and open BepInEx/LogOutput.log again.
+#   Expected: its pin goes, and the pins reading one and three stay where they were. The log
+#   gains exactly one new line starting Took your portal pin "four", and no new line starting
+#   Pinned your portal at. A neighbour's pin taken off with it would be back from its own
+#   portal's heartbeat within half a second, looking just as it did, and that second line is
+#   the only trace it leaves. The row further down cannot check this, because `logged` answers
+#   yes or no over the whole run and earlier lines already hold both phrases.
+#
+# A pin you placed by hand beside the portal. That is the case the exact lookup exists for:
+# Varda renames and takes off the pin on the very point it wrote one, never whichever pin is
+# nearest. No step can place a saved pin, though. `unpin` only takes them away, and the game's
+# own `find` command adds pins that are not saved, which `pins` does not count. By hand:
+#   1. Build a portal and wait two seconds. Expected: a portal pin on the map.
+#   2. Open the map and double-click a few metres beside that pin to add your own. Name it mine.
+#   3. Tag the portal one, then tag it again as two.
+#   Expected: Varda's pin reads two, and "mine" still reads mine. One tag was enough to break the
+#   first version: the rename put Varda's pin back at the end of the map's list, so the very next
+#   heartbeat found "mine" first and renamed that as well.
+#   4. Remove the portal with the hammer and open the map again.
+#   Expected: Varda's pin is gone and "mine" is still there. The log has a line starting
+#   "Took your portal pin".
+#
+# A portal that went while you were away. Your game only misses a destroy when it never held
+# that portal's ZDO: it was destroyed while you were offline, or by somebody else in a session
+# where you never went near it. A scenario is one client in one session, and in singleplayer the
+# game holds every ZDO in the world, so every destroy is seen as it happens. The code that finds
+# a portal gone can still be reached, by switching off the half that watches:
+#   1. Build a portal and wait two seconds. Expected: a portal pin on the map.
+#   2. In Devkit's config pane, switch Varda's RemoveDestroyedPortals off.
+#   3. Remove the portal with the hammer. Expected: the pin stays, since nothing is watching.
+#   4. Switch RemoveDestroyedPortals back on and stand still.
+#   Expected: after about ten seconds the pin goes, and the log says "the portal was not there
+#   once the area around it had settled".
+# What that still does not cover is a client on a server, which is where the ten second wait
+# matters: arriving at a spot whose ZDOs are still streaming in. Nothing here can make a server
+# send slowly on purpose, or run a second client.
+
+clear
+god
+ghost
+
+count portal_wood 0 40
+
+# Only now, for the reason at the top. The flatten is the file's older way to the same ground and
+# finds it level already, unless StageRadius has been set below FlattenRadius.
+stage
+flatten
+
+# A known map. DELETES saved pins within 40m, hand-placed ones included.
+unpin 40
+pins 0 12
+
+# ---------------------------------------------------------------- walking away is not a destroy
+
+# First, before anything has been broken, so the `logged ... no` lines below can only be about
+# this. ZNetScene.RemoveObjects tears a portal's object down when you leave the area and builds
+# it again when you come back. A mod reading the object would take the pin off for that, and
+# this one reads the ZDO. 200m is well past the active area, and past sixty `move` is a distant
+# teleport, which unloads where you came from.
+place portal_wood
+wait 3
+pins 1 12
+
+move 200
+landed
+move -200
+landed
+
+# Twelve seconds back at the spot: the ten the absence check waits for the area to settle, and
+# a margin over its once-a-second pace.
+wait 12
+pins 1 12
+
+# The count cannot fail on its own. Had the pin been taken off, the portal's heartbeat would have
+# put a new one down within half a second, and this would still read one. The log is what can
+# fail: nothing may have been taken off or forgotten, whether by the destroy path firing for an
+# unload or by the absence check misjudging a portal that stands.
+#
+# This is also the test of the exact-spot match. The absence check keeps a pin only for a portal
+# standing on the pin's very spot, to a tenth of a metre, so a portal whose ZDO reported any other
+# position than the one its pin was put on would read as gone and fail the first of these.
+logged was not there once the area around it had settled no
+logged Took your portal pin no
+logged Forgot your portal no
+
+# ---------------------------------------------------------------- broken while you watch
+
+# The same portal. `break` ends in WearNTear.Remove, the call the hammer's remove makes, and from
+# there it is the game's own path: ZNetScene.Destroy hands the ZDO to ZDOMan.DestroyZDO, which
+# only queues it. The destroy is announced on ZDOMan's next update, and that is when Varda hears
+# of it.
+break portal_wood
+wait 2
+
+# The portal is really gone, so a pin still standing below is Varda's fault and not the step's.
+count portal_wood 0 12
+
+# And so is its pin. Asked two seconds on rather than at once, which also covers the one way it
+# could come back: the heartbeat landing between the portal letting go of its ZDO and the object
+# being destroyed at the end of the frame, and pinning it again.
+pins 0 12
+
+# One line carrying both halves, so neither can be answered by some other line in the log: the
+# pin went because of the destroy, and the sidecar entry went with it. That sentence is only
+# written once the entry has been dropped.
+logged the portal was destroyed while your game had it loaded. Varda no longer remembers it yes
+
+# What the portal dropped, before the row goes up where it stood. A broken portal leaves its fine
+# wood, greydwarf eyes and surtling cores lying loose on its spot, and the first portal of the row
+# goes on that very spot: placed over loose drops, a piece shoves them out of its colliders, and
+# they land wherever that throws them, under your feet included. No step here counts drops, so
+# taking them away costs no check.
+sweep
+
+# ---------------------------------------------------------------- a row of portals, a pin each
+
+# Four portals four metres apart in a row, the way a hub is built. Each stands within 8m of its
+# neighbour, so under the first version's rule neighbours shared a pin and the row showed about
+# two pins instead of four. `place` puts each three metres ahead and some way to the right, and
+# the player does not move, so the four stand 3, 5, 8.5 and 12.4 metres off.
+place portal_wood 3 0
+place portal_wood 3 4
+place portal_wood 3 8
+place portal_wood 3 12
+
+# Ten seconds is twenty heartbeats for each of them: long enough for any one of them to take a
+# neighbour's pin for its own, add a second, or lose its own, and none may.
+wait 10
+
+count portal_wood 4 16
+pins 4 16
+
+# Each on its own portal. Only the nearest portal is inside four metres of the player, so only
+# one pin may be. Four pins all sitting on the first portal would pass the line above and fail
+# this one.
+pins 1 4
+
+# No `logged Renamed a portal pin no` here. The flicker needs two different tags, and with every
+# tag empty nothing can rename, so the line would pass on the first version as well and prove
+# nothing. The by-hand steps at the top cover it.
+
+# Break the nearest. Its pin goes and the three beside it stay. The first version kept the pin
+# here, because the portals beside it still stood within 8m of it, and that is the line this
+# section exists for: nothing inside four metres any more, three pins still in the row.
+#
+# What the count of three cannot show, any more than the count at the top, is a neighbour's pin
+# taken off with it. That portal's heartbeat would put a new one down within half a second, and
+# this would still read three. Nor can `logged` catch it here, since earlier lines already hold
+# both "Took your portal pin" and "Pinned your portal at". Step 5 of the tagged row at the top
+# of this file is where that is checked, by hand.
+break portal_wood
+wait 2
+
+count portal_wood 3 16
+pins 0 4
+pins 3 16
+
+# And they stay three. A few more heartbeats, in which none of the three may put a pin back on
+# the broken one's spot or lose its own.
+wait 3
+pins 0 4
+pins 3 16
+
+# ---------------------------------------------------------------- leave it as it was found
+
+# The other three, so the next run here starts clean. Their pins go with them, which is three
+# more passes through the same path.
+break portal_wood 16
+break portal_wood 16
+break portal_wood 16
+wait 2
+count portal_wood 0 40
+pins 0 40
+
+# And what they dropped. On 2026-09-29 this file ended with fifteen drops lying round the player,
+# the stuff of five broken portals, and varda-hides-one-portal opened by failing its `flatten`: the
+# player was half a metre above level ground with nothing under them, straight after a stage that
+# had taken away those drops and nothing else. That is a drop holding the player up until the
+# stage took it, and the flatten coming before the fall was over. The wait is for any such fall to
+# be over here, before the next file asks where the ground is.
+sweep
+wait 1

@@ -6,8 +6,12 @@ using UnityEngine;
 namespace Varda
 {
     /// <summary>
-    /// The map, reduced to the four things this mod does to it: look for a pin near a point,
-    /// add one, take one away, and put a borrowed sprite on one.
+    /// The map, reduced to the few things this mod does to it: look for a pin near a point or
+    /// exactly on one, add one, take one away, and put a borrowed sprite on one.
+    ///
+    /// Varda only ever changes a pin it found with At, on a spot the sidecar remembers. Near is
+    /// for asking whether a new pin would land on somebody else's, and never for choosing one
+    /// to rename, dress or take away.
     ///
     /// Everything here goes through <c>Minimap.AddPin</c> and <c>Minimap.RemovePin</c>, which
     /// are public and are what the game itself uses - so a Varda pin is an ordinary pin in
@@ -76,16 +80,70 @@ namespace Varda
         /// </summary>
         internal static Minimap.PinData Near(Vector3 pos, float radius)
         {
+            return Near(pos, radius, null);
+        }
+
+        /// <summary>
+        /// The same, passing over every pin <paramref name="skip"/> says yes to. A portal asks
+        /// this with Varda's other portal pins skipped, so that the pin on the portal beside it
+        /// in a row is not taken for one already sitting on its own spot.
+        /// </summary>
+        internal static Minimap.PinData Near(Vector3 pos, float radius, Predicate<Minimap.PinData> skip)
+        {
             List<Minimap.PinData> pins = All();
             if (pins == null) return null;
 
             foreach (Minimap.PinData pin in pins)
             {
                 if (!pin.m_save) continue;
-                if (Utils.DistanceXZ(pos, pin.m_pos) < radius) return pin;
+                if (Utils.DistanceXZ(pos, pin.m_pos) >= radius) continue;
+                if (skip != null && skip(pin)) continue;
+
+                return pin;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// How far apart two positions may be and still be the same spot: a pin and the spot the
+        /// sidecar remembers for it, and a portal and the spot of the pin Varda put on it. Only
+        /// float noise needs absorbing. AddPin keeps the position it is given, the map file
+        /// writes it back as three floats, the sidecar keeps the same numbers with "R", and a
+        /// portal's pin is put on the portal's own position, which is its ZDO's to the last bit.
+        /// </summary>
+        internal const float SameSpot = 0.1f;
+
+        /// <summary>
+        /// The saved pin sitting on exactly this spot, or null.
+        ///
+        /// Not Near, and the difference is what keeps other pins safe. Near answers with the
+        /// first pin inside a radius, whichever the list happens to hold first, and beside a
+        /// portal that can be one the player put there, a dungeon pin, or the pin on the portal
+        /// next to it; this answers only with a pin on the very point the sidecar remembers. A
+        /// pin carrying an owner is skipped as well. Varda always writes 0, and a pin with
+        /// somebody's id in it came off a cartography table.
+        /// </summary>
+        internal static Minimap.PinData At(Vector3 pos)
+        {
+            List<Minimap.PinData> pins = All();
+            if (pins == null) return null;
+
+            Minimap.PinData best = null;
+            float closest = SameSpot;
+
+            foreach (Minimap.PinData pin in pins)
+            {
+                if (!pin.m_save || pin.m_ownerID != 0L) continue;
+
+                float distance = Utils.DistanceXZ(pos, pin.m_pos);
+                if (distance >= closest) continue;
+
+                closest = distance;
+                best = pin;
+            }
+
+            return best;
         }
 
         /// <summary>
@@ -104,15 +162,10 @@ namespace Varda
             Minimap map = Minimap.instance;
             if (map == null) return null;
 
+            // No null check on the result. In 1.0 AddPin never refuses: a type it does not know
+            // is logged as "Trying to add invalid pin type" and saved as Icon3, so a bad
+            // DungeonPinType or PortalPinType shows up as that warning and a plain marker.
             Minimap.PinData pin = map.AddPin(pos, type, name ?? "", true, false, 0L);
-            if (pin == null)
-            {
-                VardaPlugin.Log.LogWarning(
-                    "The map refused a " + type + " pin. That happens when the pin type is "
-                    + "outside the range the game knows, so check DungeonPinType and "
-                    + "PortalPinType in the config.");
-                return null;
-            }
 
             Dress(pin, icon);
             return pin;

@@ -1,0 +1,254 @@
+#! nostage
+# Varda: look at a portal you built and press H, and its pin comes off your map and stays off.
+# Press it again and the pin comes back with its tag. The portal beside it keeps its pin
+# throughout, and breaking a hidden portal forgets that it was hidden, so a new portal built on
+# the same spot gets a pin.
+#
+# Stand somewhere with no portals of your own within 40 metres, the same as
+# varda-forgets-a-destroyed-portal, and for the same reason: a portal left standing nearby pins
+# itself and every count below would be one out. This file breaks everything it builds.
+#
+# The ground is staged after that count, not before the first step, which is what the
+# `#! nostage` line at the top is for. A stage takes down every piece within 34 metres, and a run
+# that stopped halfway leaves a hidden portal standing here. Taken down by a stage at step 0, it
+# would write "Forgot that you hid your portal" into the log before anything below had been
+# hidden, and `logged Forgot that you hid your portal yes` reads from the start of the run, so it
+# would pass without the destroy it is there for. Staged after the count, the leftover fails the
+# count first.
+#
+# Needs Verbose = true in ezomic.valheim.varda.cfg, as own-profile has it. Several `logged` lines
+# below read Verbose lines, and they are the only way to tell a pin that stayed put from one that
+# was taken off and put straight back.
+#
+# NO STEP CAN PRESS A KEY. `mod vardatest hide` and `mod vardatest show` stand in for it. They
+# call Hiding.Set, the method the key calls once it has found the portal under the crosshair, so
+# everything after the keystroke is what this file tests: the record, the pin coming off, the
+# heartbeat that must not put it back, and the pin coming back. `vardatest` acts on the nearest
+# portal of yours within five metres. `mod vardatest tag` is there because no step can type into
+# the tag box either, and "comes back with its tag" says nothing about an untagged portal.
+#
+# The tags are VardaHideHome and VardaHideAway, never Home and Away. `pinned` looks across the
+# whole map for a pin whose name contains the text, whatever the case, and Home is the name
+# players give pins most, so a Homestead on the far side of the world would fail every
+# `pinned ... no` below for a reason that has nothing to do with Varda. The by-hand steps keep
+# Home, since a person can see which pin is which.
+#
+# `hiddenportals` counts every portal this character has hidden in this world, not the ones
+# here, so any hidden in play elsewhere, or left by a run that stopped halfway, are in it too.
+# Every reading of it is therefore a change against the reading before, through `note` and
+# `went`, and never a number.
+#
+# WHAT ONLY A PERSON CAN CHECK. Each is worth doing by hand before a release.
+#
+# The line and the real key.
+#   1. Build a portal and tag it Home. Look at it.
+#   Expected: under "[E] Set tag" the hover text has one more line, "[H] Hide from your map",
+#   with the H yellow and bold like the E above it.
+#   2. Press H.
+#   Expected: "Portal hidden from your map" in the middle of the screen. Open the map: no pin
+#   on the portal. Close it and look at the portal again: the line now reads
+#   "[H] Show on your map".
+#   3. Press H again.
+#   Expected: "Portal shown on your map", and within a second the pin is back on the map,
+#   reading Home. The line reads "[H] Hide from your map" again.
+#
+# A text box must never hear the key. Typing H into any of these must not hide or show anything.
+#   4. Look at the portal, press E and type "hh" into its tag box, then OK.
+#   Expected: the tag reads hh, the pin reads hh, and no message came up while you typed.
+#   5. Still looking at it, press Enter and type "hh" into chat. Then open the console (F5) and
+#   type "hh" there.
+#   Expected: no message either time, and the pin is still on the map.
+#   6. Open the inventory (Tab) and press H, then the map (M) and press H.
+#   Expected: nothing, both times.
+#   7. With Devkit's window open (F6), press H while the crosshair is on the portal.
+#   Expected: nothing. Devkit shuts Player.TakeInput while it is open, and that is the gate the
+#   key is read through, which is what keeps it out of every other mod's window as well.
+#
+# Somebody else's portal. A scenario is one character, and every portal it builds is that
+# character's.
+#   8. On a server, have a second player build a portal. Look at it.
+#   Expected: no "Hide from your map" line, and pressing H does nothing.
+#
+# Across a logout.
+#   9. Hide a portal, log out to the main menu, and come back into the same world.
+#   Expected: still no pin on it, and its line reads "[H] Show on your map".
+#   10. Press H on it.
+#   Expected: the pin is back within a second, with its tag.
+#
+# A hidden portal that went while you were not watching. Below, the portal is broken with the
+# game watching, so the choice is forgotten at the moment of destruction. When the destroy
+# never reached this machine, it is found by absence instead, once the spot has settled, and
+# singleplayer sees every destroy. The same switch varda-forgets-a-destroyed-portal uses gets
+# there by turning off the half that watches:
+#   11. Build a portal, look at it and press H. Expected: no pin on it.
+#   12. In Devkit's config pane, switch Varda's RemoveDestroyedPortals off.
+#   13. Remove the portal with the hammer.
+#   14. Switch RemoveDestroyedPortals back on and stand still.
+#   Expected: after about ten seconds the log has a line starting "Forgot that you hid your
+#   portal at" and ending "was not there once the area around it had settled. A portal built
+#   there again gets a pin."
+#   15. Without moving, build a portal on the same spot and wait two seconds.
+#   Expected: it has a pin, and its line reads "[H] Hide from your map". Building by hand rarely
+#   lands within the tenth of a metre that counts as the same spot, so this half proves little
+#   on its own; the log line in 14 is the check that matters.
+
+clear
+god
+ghost
+
+count portal_wood 0 40
+
+# Only now, for the reason at the top. The flatten is the file's older way to the same ground and
+# finds it level already, unless StageRadius has been set below FlattenRadius.
+stage
+flatten
+
+# A known map. DELETES saved pins within 40m, hand-placed ones included.
+unpin 40
+pins 0 12
+
+# ---------------------------------------------------------------- two tagged portals
+
+# The neighbour first, straight ahead, and tagged VardaHideAway. The wait before the tag is
+# load-bearing: the portal pins itself untagged on its first heartbeat, and the tag then reaches
+# the pin as a rename. So "Pinned your portal at ... as "VardaHideAway"" is never written by this
+# setup, and if it turns up in the log later, the neighbour's pin was taken off and put back.
+# That is the one thing a count cannot see, since the heartbeat would put it back within half a
+# second.
+place portal_wood
+wait 3
+mod vardatest tag VardaHideAway
+wait 2
+pinned VardaHideAway yes
+
+# Five metres to the left, and the portal under test three metres ahead of that. Everything from
+# here on is measured from this spot, and the player does not move again, so the portal built at
+# the end lands exactly where this one stands. VardaHideAway is now 5.8 metres off, past
+# vardatest's five, so the verbs below can only reach VardaHideHome.
+move 0 -5
+landed
+
+place portal_wood
+wait 3
+mod vardatest tag VardaHideHome
+wait 2
+
+pinned VardaHideHome yes
+pins 2 12
+pins 1 4
+
+# Nothing has put VardaHideHome's pin down with its tag yet, only renamed it. The same line is
+# asserted the other way once it is shown again.
+logged as "VardaHideHome" no
+
+# The line, on the nearest portal, which is VardaHideHome. The second form checks the whole of
+# it with the default key: vanilla's key prompt, yellow and bold in square brackets, naming H.
+hover portal_wood Hide_from_your_map
+hover portal_wood <b>H</b></color>]_Hide_from_your_map
+
+# ---------------------------------------------------------------- hide it
+
+# The count before anything here is hidden, for every reading below to be measured against.
+# Taken just before the hide rather than at the start: a portal hidden near here and destroyed
+# since is forgotten once its spot has been settled ten seconds, and the waits above come to
+# about that, so such a leftover goes before this reading rather than between it and the next.
+mod vardatest
+note hidden hiddenportals=(\d+)
+
+mod vardatest hide
+printed hidden=yes was=no yes
+
+wait 1
+
+# VardaHideHome's pin is gone and VardaHideAway's is not.
+pins 0 4
+pins 1 12
+pinned VardaHideHome no
+pinned VardaHideAway yes
+
+hover portal_wood Show_on_your_map
+
+# Ten seconds is twenty heartbeats for VardaHideHome, each of which could have pinned it again,
+# and none may. Unlike a pin taken off, a pin put back cannot hide from these counts.
+wait 10
+pins 0 4
+pins 1 12
+pinned VardaHideHome no
+
+mod vardatest
+went hidden hiddenportals=(\d+) +1
+printed nearest=hidden pin=no yes
+
+# ---------------------------------------------------------------- show it
+
+mod vardatest show
+printed hidden=no was=yes yes
+
+wait 2
+
+pins 1 4
+pins 2 12
+pinned VardaHideHome yes
+
+# Put back by the portal's own heartbeat, with its tag, which is the one path a pin is made by.
+logged as "VardaHideHome" yes
+
+# And through all of it the neighbour was never touched. See the setup above.
+logged as "VardaHideAway" no
+
+hover portal_wood Hide_from_your_map
+
+mod vardatest
+went hidden hiddenportals=(\d+) -1
+printed nearest=shown pin=yes yes
+
+# ---------------------------------------------------------------- a hidden portal destroyed
+
+mod vardatest hide
+printed hidden=yes yes
+mod vardatest
+went hidden hiddenportals=(\d+) +1
+wait 1
+pins 0 4
+
+# The nearest portal_wood is VardaHideHome. Breaking it is the moment a destroyed portal takes
+# its pin, and here there is no pin, only the choice, which has to go with it.
+break portal_wood
+wait 2
+
+count portal_wood 1 16
+pins 1 12
+pinned VardaHideAway yes
+
+mod vardatest
+went hidden hiddenportals=(\d+) -1
+logged Forgot that you hid your portal yes
+
+# What VardaHideHome dropped, before a portal goes up where it stood: placed over loose drops, a
+# piece shoves them out of its colliders, and they land wherever that throws them, under your
+# feet included. See the end of varda-forgets-a-destroyed-portal for what one did there.
+sweep
+
+# A new portal on the very spot VardaHideHome stood on. Had the choice outlived the portal, this
+# one would start hidden and never pin itself. That can only fail here if the new portal lands
+# within a tenth of a metre of the old one, which it should, since `place` measures from the
+# player and the player has not moved; the -1 above is the proof that does not depend on it.
+place portal_wood
+wait 3
+
+pins 1 4
+pins 2 12
+hover portal_wood Hide_from_your_map
+
+# ---------------------------------------------------------------- leave it as it was found
+
+break portal_wood 16
+break portal_wood 16
+wait 2
+count portal_wood 0 40
+pins 0 40
+
+# And what the two dropped, so the next file does not open standing on one. The wait is for a fall
+# off one to be over before it starts; see the end of varda-forgets-a-destroyed-portal.
+sweep
+wait 1

@@ -1,4 +1,5 @@
 using BepInEx.Configuration;
+using UnityEngine;
 
 namespace Varda
 {
@@ -18,12 +19,15 @@ namespace Varda
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<bool> Dungeons;
         internal static ConfigEntry<bool> Portals;
+        internal static ConfigEntry<bool> RemoveDestroyedPortals;
+        internal static ConfigEntry<KeyCode> HidePortalKey;
         internal static ConfigEntry<bool> NameDungeons;
         internal static ConfigEntry<Minimap.PinType> DungeonPinType;
         internal static ConfigEntry<Minimap.PinType> PortalPinType;
         internal static ConfigEntry<string> DungeonIcon;
         internal static ConfigEntry<string> PortalIcon;
         internal static ConfigEntry<float> MergeRadius;
+        internal static ConfigEntry<float> PortalMergeRadius;
         internal static ConfigEntry<bool> DumpIcons;
         internal static ConfigEntry<bool> Verbose;
 
@@ -48,6 +52,60 @@ namespace Varda
                 "Pin portals you built, labelled with whatever you tagged them. Portals built "
                 + "by other players are never pinned; you would be reading their map.");
 
+            // On, because a pin for a portal that is not there any more is the map lying about
+            // your own network, and it is the one Varda pin that goes wrong by itself: a crypt
+            // does not stop being a crypt. Off is for anyone who would rather keep the mark as a
+            // record of where a portal used to stand.
+            //
+            // The second sentence of the description is the one that matters in play. A portal
+            // that went while you were far away never told this machine anything, so its pin can
+            // only come off when you are back, and "back" has to include the area having finished
+            // loading, or a portal that simply has not arrived yet would lose its pin.
+            //
+            // Does nothing with Portals off. What puts back a pin that was taken off by mistake
+            // is the portal pinning itself again, and that is the half Portals switches off.
+            //
+            // A portal you hid with HidePortalKey is forgotten by the same two moments, so that a
+            // portal built later on the same spot is pinned rather than inheriting a choice made
+            // about one that is gone. With this off, the choice stays, and the new portal's hover
+            // text says so: it offers to show it rather than to hide it.
+            RemoveDestroyedPortals = cfg.Bind("Varda", "RemoveDestroyedPortals", true,
+                "Take a portal's pin off your map when that portal is destroyed, by your hammer, "
+                + "by damage or by anybody else. If it went while you were far away, the pin comes "
+                + "off the next time you stand near where it was, once the area has finished "
+                + "loading. Walking out of sight of a portal never counts. Only pins Varda put on "
+                + "portals you built: a pin you placed by hand is never touched, and neither is a "
+                + "dungeon pin. A portal you hid with HidePortalKey is forgotten the same way, so a "
+                + "new portal built on its spot gets a pin. Does nothing while Portals is off.");
+
+            // H, because nothing else wants it. ZInput's default bindings (ResetKBMButtons in 1.0)
+            // put the game's keys on E, R, Q, X, F, C, V, G, T, M, Tab, W A S D, the digits, F5
+            // and a few more, and nothing in assembly_valheim reads KeyCode.H directly: the
+            // letters it does read by hand are the debug-mode Z, B, K and L, and a few on menu
+            // screens. No other mod in this folder defaults to H either. Read on 2026-09-27.
+            //
+            // Not Shift+E, which is the gesture Valheim would suggest for "something else you can
+            // do to this", because Skra already puts its portal settings there, and the two would
+            // fire together.
+            //
+            // A KeyCode, which Core's config sync exempts from host control whatever the list in
+            // the plugin says; it is in that list anyway, so the list stays the whole truth.
+            //
+            // None takes away the key and the hover line and nothing else. Tick reads the hidden
+            // records whatever the key is, so a portal already hidden stays hidden, and with the
+            // line gone there is nothing on it to say why. The description says so because a
+            // player who sets None to turn the feature off would otherwise expect those pins back.
+            HidePortalKey = cfg.Bind("Varda", "HidePortalKey", KeyCode.H,
+                "Look at a portal you built and press this to take its pin off your map, and press "
+                + "it again to put the pin back. The portal's hover text names the key and says "
+                + "which it will do. It is yours alone: nobody else's map changes and the portal "
+                + "itself is untouched, and it is remembered per character, per world and per "
+                + "portal. A pin you placed by hand is never touched. H because neither the game "
+                + "nor any of this author's other mods binds it; Shift+E would have been the "
+                + "natural gesture, but Skra's portal settings already use it. None takes away the "
+                + "key and its hover line, but a portal you already hid stays hidden until you bind "
+                + "a key again and press it on that portal. Does nothing while Portals is off.");
+
             // Off, and it was on until Robbin saw it in game. The icon already says what the
             // thing is, and a label under it repeats that in words while taking up room on a
             // map whose whole job is to be glanceable. Pin names draw on the large map only,
@@ -62,10 +120,12 @@ namespace Varda
             // looks like while the mod is running - the icon below wins.
             //
             // A custom PinType was the obvious alternative and it is a trap. Pins are written
-            // to the map file as a bare int and read back through Minimap.AddPin, which
-            // rejects anything past the end of the enum: remove the mod and every pin of that
-            // type is dropped on load, silently, and the next save writes the map back without
-            // them. Saving as a vanilla type means uninstalling costs you an icon, not a map.
+            // to the map file as a bare int and read back through Minimap.AddPin, which in 1.0
+            // takes nothing past the end of the enum: it logs "Trying to add invalid pin type"
+            // and makes the pin Icon3 instead. So a custom type needs a patch on AddPin just to
+            // exist, and without the mod every such pin loads as the plain marker, all of them
+            // alike and filed under Icon3's row. Saving as a vanilla type means uninstalling
+            // costs you a picture and nothing else.
             // Icon3 and Icon4 are not guesses any more. Read in game on 2026-09-21, the five
             // hand-placed slots are Icon0 fire, Icon1 house, Icon2 hammer, Icon3 plain marker,
             // Icon4 portal.
@@ -102,12 +162,45 @@ namespace Varda
                 + "picture. Only worth setting if you want portals to stand out from the ones "
                 + "you pin by hand.");
 
-            // 8m because a dungeon entrance is a few metres across and a portal is two, and
-            // because re-entering the same crypt must not stack a second pin on the first.
+            // 8m because a dungeon entrance is a few metres across, and because re-entering the
+            // same crypt must not stack a second pin on the first.
+            //
+            // Dungeons only. It was the portals' radius as well, and two of your portals inside
+            // it shared one pin: with different tags each renamed that pin to its own twice a
+            // second, so a row of tagged portals showed one pin flicking between their names.
+            // Every portal has its own pin now, and PortalMergeRadius below is what is left of
+            // this rule for them.
             MergeRadius = cfg.Bind("Varda", "MergeRadius", 8f,
-                "Metres. A pin is not added when one already sits this close, whoever put it "
-                + "there - so re-entering a crypt does not stack pins, and a pin you placed by "
-                + "hand on the door is left alone rather than doubled.");
+                "Metres, for dungeons. A dungeon pin is not added when a pin already sits this "
+                + "close to the door, whoever put it there. So re-entering a crypt does not stack "
+                + "pins, and a pin you placed by hand on the door is left alone rather than "
+                + "doubled. Portals have their own setting, PortalMergeRadius.");
+
+            // A metre, and not the 8 it inherited, because all that is left for this to do is
+            // keep a portal from doubling a pin somebody already put on it. Portals are built
+            // side by side, a few metres apart, and at 8m one pin you placed in the middle of a
+            // row would have left every portal round it without a pin of its own. A metre is
+            // the distance the game itself treats as the same pin: Minimap.AddSharedMapData skips
+            // a pin from a cartography table when a pin already on your map is within 1m of it,
+            // which is the same "a pin already sits here" question as this one. In an ordinary
+            // row it also keeps a pin standing in for the portal it is on and no other: to be
+            // within a metre of two portals, a pin needs their centres under two metres apart,
+            // and portals built side by side stand a few metres apart. Nothing has measured how
+            // close two portals can be placed, so this is the ordinary row and not a guarantee.
+            //
+            // The cost is a pin placed by hand a couple of metres off the portal, which is now
+            // doubled rather than respected. That is visible, and fixed by deleting the hand
+            // pin, since Varda's follows the tag; a row of portals missing their pins for a
+            // reason nobody can see is neither.
+            PortalMergeRadius = cfg.Bind("Varda", "PortalMergeRadius", 1f,
+                "Metres, for portals. A portal of yours gets no pin of its own while another pin "
+                + "already sits this close to it, such as one you placed on it by hand, so the two "
+                + "are not doubled. The pins Varda put on your other portals never count, so "
+                + "portals built side by side each keep their own. One metre is what the game "
+                + "itself treats as the same spot for a pin, and in an ordinary row, with portals "
+                + "a few metres apart, a pin that close stands in only for the portal it is on. "
+                + "Raising it respects hand pins placed less exactly, but keep it under half the "
+                + "gap between your portals, or one pin will leave its neighbours without theirs.");
 
             // A tool for drawing art, not a feature, which is why it is off and why it writes
             // once and says so. The pin sprites are serialised on the Minimap prefab inside a
