@@ -7,7 +7,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "Ezomic"
 name = "Varda"
-versionNumber = "0.1.0"
+versionNumber = "1.0.0"
 description = "Dungeon entrances and portals pin themselves once you have used them."
 websiteUrl = "https://github.com/Ezomic/valheim-varda"
 containsNsfwContent = false
