@@ -30,10 +30,11 @@ within sight of the road is a detector with extra steps, and "I have been down t
 Two things.
 
 **A dungeon pins itself the moment you step through the door.** Burial chambers, troll
-caves, sunken crypts, frost caves, mines, anything the game moves you into. It carries the
-dungeon's own name, the one on the banner you see as you go in, so a modded dungeon is
-labelled correctly without this mod knowing anything about it. Coming back out does not add
-a second pin, and neither does going back in next week.
+caves, sunken crypts, frost caves, mines, anything the game moves you into. The pin wears
+Varda's own dungeon icon and no label, because the icon already says what it is. Turn
+`NameDungeons` on and it carries the dungeon's own name as well, the one on the banner you see
+as you go in, so a modded dungeon is labelled correctly without this mod knowing anything about
+it. Coming back out does not add a second pin, and neither does going back in next week.
 
 **A portal you built pins itself with its tag,** and the pin follows the tag when you change
 it. Every portal gets a pin of its own, so a hub of portals built side by side shows each one
@@ -103,10 +104,11 @@ your own, since Varda's follows the tag, or raise the setting.
 
 ## Icons
 
-Dungeon and portal pins can each wear a PNG dropped beside `Varda.dll`. If there is no file,
-dungeon pins borrow the icon the game already uses for a crypt, and failing that both fall
-back to the plain pin. None of that is an error and none of it stops the mod working. An
-icon is the part you can change without a rebuild, which is the point of it being a file.
+Dungeon and portal pins can each wear a PNG dropped beside `Varda.dll`, and dungeon pins ship
+with one, `dungeon.png`. If there is no file, Varda looks for a crypt icon the game already
+carries, finds none in Valheim 1.0, and the pin falls back to the plain one. None of that is an
+error and none of it stops the mod working. An icon is the part you can change without a
+rebuild, which is the point of it being a file.
 
 ## Installing
 

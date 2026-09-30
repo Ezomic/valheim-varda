@@ -151,8 +151,8 @@ namespace Varda
             // different PNG in and editing one line.
             DungeonIcon = cfg.Bind("Varda", "DungeonIcon", "dungeon.png",
                 "PNG beside Varda.dll to draw dungeon pins with. Missing file, or empty, falls "
-                + "back to the icon the game already uses for a crypt on the map, and failing "
-                + "that to the plain pin above. Nothing here is ever fatal.");
+                + "back to a crypt icon borrowed from the game's own map, which Valheim 1.0 does "
+                + "not carry, so in practice to the plain pin above. Nothing here is ever fatal.");
 
             // Empty on purpose, unlike DungeonIcon. Icon4 already wears the game's own portal
             // icon, so drawing one would be replacing correct vanilla art with a copy of it.
