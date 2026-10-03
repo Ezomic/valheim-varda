@@ -147,6 +147,20 @@ namespace Varda
                 VardaConfig.PortalMergeRadius,
                 VardaConfig.DumpIcons,
                 VardaConfig.Verbose);
+
+            try { ListOnSettingsScreen(); }
+            catch (System.Exception e) { Log.LogInfo("Core has no settings screen to list on, so these settings are in the .cfg only: " + e.Message); }
+        }
+
+        /// <summary>
+        /// The settings this mod lists on Core's settings screen (LHM-51). Never inlined and called
+        /// inside a try, so an older Core that has no such screen costs the listing and nothing
+        /// else, and the JIT only meets the type on a machine that has it.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ListOnSettingsScreen()
+        {
+            SettingsPanel.Add(VardaConfig.HidePortalKey, "Hide portal", SettingsGroup.Hotkeys, "while looking at a portal you built");
         }
 
         /// <summary>

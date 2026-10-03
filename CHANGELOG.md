@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+The hide-portal key is on Core's Settings page (LHM-51), the page in the compendium that lists a
+player's own settings and rebinds a key by pressing it. Without Core nothing changes. Built, not run in game.
+
 ## 1.0.0 - 2026-09-30
 
 First release.
