@@ -120,6 +120,9 @@ before the mod has loaded, which is the usual reason people think it is broken.
 
 ## Settings
 
+With [Core](https://github.com/Ezomic/valheim-core) installed, `HidePortalKey` is also on the Settings page of the
+compendium, where it is rebound by pressing the key you want.
+
 The file is `BepInEx/config/ezomic.valheim.varda.cfg`. Open it in any text editor. Every
 setting has a comment above it, so the file explains itself.
 
